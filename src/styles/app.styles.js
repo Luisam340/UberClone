@@ -186,4 +186,65 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 30,
   },
+
+  dateContainer: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 17,
+    minHeight: 54,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+
+  datePicker: {
+    alignSelf: 'flex-start',
+    marginLeft: -8,
+    backgroundColor: colors.surface,
+  },
+
+  dateInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 17,
+    height: 54,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  dateText: {
+    color: colors.text,
+    // fontFamily: typography.family.body,
+    fontSize: 16,
+  },
+
+  dateIcon: {
+    color: colors.primary,
+    fontSize: 20,
+  },
+
+  selectContainer: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 17,
+    overflow: 'hidden',
+  },
+
+  selectOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
+
+  selectModal: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+  },
 });

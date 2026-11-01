@@ -39,7 +39,16 @@
           }
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UberClone necesita acceder a tus fotos para completar el registro del conductor.",
+          "cameraPermission": "UberClone necesita acceder a la cámara para tomar fotografías del conductor, vehículo y documentos.",
+          "microphonePermission": "UberClone necesita acceder al micrófono cuando se utilicen funciones de captura audiovisual."
+        }
+      ]
     ]
   }
 }
