@@ -21,7 +21,7 @@ export function RegisterWelcomeScreen({ navigation }) {
 
       <PrimaryButton
         title="Comenzar registro"
-        onPress={() => navigation.navigate('PersonalData')}
+        onPress={() => navigation.navigate('RegisterDriver')}
       />
     </ScrollView>
   );

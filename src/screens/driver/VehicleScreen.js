@@ -1,4 +1,4 @@
-import { use, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -11,20 +11,93 @@ import { styles } from '../../styles/app.styles';
 import { colors } from '../../themes/colors';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { SelectInput } from '../../components/SelectInput';
-import { vehicleCategories, vehicleColors } from '../../data/vehicle';
-import { DateInput, YearInput } from '../../components/DateInput';
+import {
+  vehicleCategories,
+  vehicleColors,
+  initialVehicle,
+  initialVehicleErrors,
+  getVehicleErrors,
+} from '../../data/vehicle';
+import { YearInput } from '../../components/DateInput';
 import { ImageInput } from '../../components/ImageInput';
+import { ValidationError } from '../../components/ValidationError';
+import { validateVehicleData } from '../../utils/registrationValidators';
 
-export function VehicleScreen({ navigation }) {
-  const [vehiclePhoto, setVehiclePhoto] = useState(null);
-  const [category, setCategory] = useState('');
-  const [licensePlate, setLicensePlate] = useState('');
-  const [brand, setBrand] = useState('');
-  const [model, setModel] = useState('');
-  const [year, setYear] = useState(null);
-  const [color, setColor] = useState(null);
-  const [passengerCapacity, setPassengerCapacity] = useState('');
-  const [error, setError] = useState(true);
+export function VehicleScreen({
+  navigation,
+  initialData = initialVehicle,
+  vehicleYear,
+  setVehicleYear,
+  onChange,
+  onSave,
+}) {
+  const [vehiclePhoto, setVehiclePhoto] = useState(initialData.vehiclePhoto);
+  const [category, setCategory] = useState(initialData.category);
+  const [licensePlate, setLicensePlate] = useState(initialData.licensePlate);
+  const [brand, setBrand] = useState(initialData.brand);
+  const [model, setModel] = useState(initialData.model);
+  const [color, setColor] = useState(initialData.color);
+  const [passengerCapacity, setPassengerCapacity] = useState(
+    initialData.passengerCapacity,
+  );
+
+  const [errors, setErrors] = useState(initialVehicleErrors);
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const vehicleData = {
+      vehiclePhoto,
+      category,
+      licensePlate,
+      brand,
+      model,
+      vehicleYear,
+      color,
+      passengerCapacity,
+    };
+
+    onChange(vehicleData);
+  }, [
+    vehiclePhoto,
+    category,
+    licensePlate,
+    brand,
+    model,
+    vehicleYear,
+    color,
+    passengerCapacity,
+    onChange,
+  ]);
+
+  const handleNext = () => {
+    const vehicleData = {
+      vehiclePhoto,
+      category,
+      licensePlate,
+      brand,
+      model,
+      vehicleYear,
+      color,
+      passengerCapacity,
+    };
+
+    const validationErrors = validateVehicleData(vehicleData);
+
+    setErrors(getVehicleErrors(validationErrors));
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      return;
+    }
+
+    onSave(vehicleData);
+    navigation.navigate('Documentos');
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -51,12 +124,15 @@ export function VehicleScreen({ navigation }) {
             value={vehiclePhoto}
             onChange={setVehiclePhoto}
           />
+          <ValidationError message={errors.vehiclePhoto} />
+
           <SelectInput
             label="Categoría del vehículo"
             value={category}
             onChange={setCategory}
             options={vehicleCategories}
           />
+          <ValidationError message={errors.category} />
 
           <Text style={styles.label}>Placa</Text>
           <TextInput
@@ -69,6 +145,7 @@ export function VehicleScreen({ navigation }) {
             value={licensePlate}
             onChangeText={(text) => setLicensePlate(text.toUpperCase())}
           />
+          <ValidationError message={errors.licensePlate} />
 
           <Text style={styles.label}>Marca</Text>
           <TextInput
@@ -80,6 +157,7 @@ export function VehicleScreen({ navigation }) {
             value={brand}
             onChangeText={setBrand}
           />
+          <ValidationError message={errors.brand} />
 
           <Text style={styles.label}>Modelo</Text>
           <TextInput
@@ -91,8 +169,14 @@ export function VehicleScreen({ navigation }) {
             value={model}
             onChangeText={setModel}
           />
+          <ValidationError message={errors.model} />
 
-          <YearInput label="Año" value={year} onChange={setYear} />
+          <YearInput
+            label="Año"
+            value={vehicleYear}
+            onChange={setVehicleYear}
+          />
+          <ValidationError message={errors.vehicleYear} />
 
           <SelectInput
             label="Color del vehículo"
@@ -100,6 +184,7 @@ export function VehicleScreen({ navigation }) {
             onChange={setColor}
             options={vehicleColors}
           />
+          <ValidationError message={errors.color} />
 
           <Text style={styles.label}>Capacidad de pasajeros</Text>
           <TextInput
@@ -112,12 +197,9 @@ export function VehicleScreen({ navigation }) {
             value={passengerCapacity}
             onChangeText={setPassengerCapacity}
           />
+          <ValidationError message={errors.passengerCapacity} />
 
-          <PrimaryButton
-            title="Siguiente"
-            onPress={() => navigation.navigate('DocumentData')}
-            //disabled={error}
-          />
+          <PrimaryButton title="Siguiente" onPress={handleNext} />
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

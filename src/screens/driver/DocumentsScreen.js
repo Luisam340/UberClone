@@ -1,26 +1,86 @@
-import { useState } from 'react';
-import { ScrollView, Switch, Text, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
-import { DateInput } from '../../components/DateInput';
+import { ExpirationDateInput } from '../../components/ExpirationDateInput';
 import { ImageInput } from '../../components/ImageInput';
 import { PrimaryButton } from '../../components/PrimaryButton';
+import { Checkbox } from '../../components/Checkbox';
+import { ValidationError } from '../../components/ValidationError';
 
 import { colors } from '../../themes/colors';
 import { styles } from '../../styles/app.styles';
+import { validateDocuments } from '../../utils/registrationValidators';
+import {
+  initialDocuments,
+  initialDocumentErrors,
+  getDocumentErrors,
+} from '../../data/document';
 
-export function DocumentsScreen() {
-  const [licenseNumber, setLicenseNumber] = useState('');
-  const [licenseExpiration, setLicenseExpiration] = useState(null);
-  const [licensePhoto, setLicensePhoto] = useState(null);
+export function DocumentsScreen({
+  navigation,
+  vehicleYear,
+  initialData = initialDocuments,
+  onChange,
+  onSave,
+}) {
+  const [licenseNumber, setLicenseNumber] = useState(initialData.licenseNumber);
+  const [licenseExpiration, setLicenseExpiration] = useState(
+    initialData.licenseExpiration,
+  );
+  const [licensePhoto, setLicensePhoto] = useState(initialData.licensePhoto);
 
-  const [soatExpiration, setSoatExpiration] = useState(null);
-  const [soatPhoto, setSoatPhoto] = useState(null);
+  const [soatExpiration, setSoatExpiration] = useState(
+    initialData.soatExpiration,
+  );
+  const [soatPhoto, setSoatPhoto] = useState(initialData.soatPhoto);
 
-  const [technicalExpiration, setTechnicalExpiration] = useState(null);
-  const [technicalPhoto, setTechnicalPhoto] = useState(null);
+  const [technicalExpiration, setTechnicalExpiration] = useState(
+    initialData.technicalExpiration,
+  );
+  const [technicalPhoto, setTechnicalPhoto] = useState(
+    initialData.technicalPhoto,
+  );
 
-  const [mercadoPagoEmail, setMercadoPagoEmail] = useState('');
-  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [mercadoPagoEmail, setMercadoPagoEmail] = useState(
+    initialData.mercadoPagoEmail,
+  );
+  const [acceptedTerms, setAcceptedTerms] = useState(initialData.acceptedTerms);
+
+  const [errors, setErrors] = useState(initialDocumentErrors);
+
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const documents = {
+      licenseNumber,
+      licenseExpiration,
+      licensePhoto,
+      soatExpiration,
+      soatPhoto,
+      technicalExpiration,
+      technicalPhoto,
+      mercadoPagoEmail,
+      acceptedTerms,
+    };
+
+    onChange(documents);
+  }, [
+    licenseNumber,
+    licenseExpiration,
+    licensePhoto,
+    soatExpiration,
+    soatPhoto,
+    technicalExpiration,
+    technicalPhoto,
+    mercadoPagoEmail,
+    acceptedTerms,
+    onChange,
+  ]);
 
   const handleSubmit = () => {
     const documents = {
@@ -34,6 +94,16 @@ export function DocumentsScreen() {
       mercadoPagoEmail,
       acceptedTerms,
     };
+
+    const validationErrors = validateDocuments(documents);
+
+    setErrors(getDocumentErrors(validationErrors));
+
+    if (Object.values(validationErrors).some(Boolean)) {
+      return;
+    }
+
+    onSave(documents);
   };
 
   return (
@@ -56,14 +126,12 @@ export function DocumentsScreen() {
         >
           Documentos y pagos
         </Text>
-
         <Text style={{ color: colors.textSecondary }}>
           Completa los documentos necesarios para registrar tu vehículo y
           recibir pagos por tus viajes.
         </Text>
       </View>
 
-      {/* Licencia de conducción */}
       <View style={{ gap: 16 }}>
         <Text
           style={{
@@ -77,7 +145,6 @@ export function DocumentsScreen() {
 
         <View>
           <Text style={styles.label}>Número de licencia *</Text>
-
           <TextInput
             style={styles.input}
             placeholder="Ingresa el número de licencia"
@@ -86,22 +153,28 @@ export function DocumentsScreen() {
             value={licenseNumber}
             onChangeText={setLicenseNumber}
           />
+          <ValidationError message={errors.licenseNumber} />
         </View>
 
-        <DateInput
-          label="Fecha de vencimiento *"
-          value={licenseExpiration}
-          onChange={setLicenseExpiration}
-        />
+        <View>
+          <ExpirationDateInput
+            label="Fecha de vencimiento *"
+            value={licenseExpiration}
+            onChange={setLicenseExpiration}
+          />
+          <ValidationError message={errors.licenseExpiration} />
+        </View>
 
-        <ImageInput
-          label="Fotografía de la licencia *"
-          value={licensePhoto}
-          onChange={setLicensePhoto}
-        />
+        <View>
+          <ImageInput
+            label="Fotografía de la licencia *"
+            value={licensePhoto}
+            onChange={setLicensePhoto}
+          />
+          <ValidationError message={errors.licensePhoto} />
+        </View>
       </View>
 
-      {/* SOAT */}
       <View style={{ gap: 16 }}>
         <Text
           style={{
@@ -113,20 +186,25 @@ export function DocumentsScreen() {
           SOAT
         </Text>
 
-        <DateInput
-          label="Fecha de vencimiento del SOAT *"
-          value={soatExpiration}
-          onChange={setSoatExpiration}
-        />
+        <View>
+          <ExpirationDateInput
+            label="Fecha de vencimiento del SOAT *"
+            value={soatExpiration}
+            onChange={setSoatExpiration}
+          />
+          <ValidationError message={errors.soatExpiration} />
+        </View>
 
-        <ImageInput
-          label="Fotografía del SOAT *"
-          value={soatPhoto}
-          onChange={setSoatPhoto}
-        />
+        <View>
+          <ImageInput
+            label="Fotografía del SOAT *"
+            value={soatPhoto}
+            onChange={setSoatPhoto}
+          />
+          <ValidationError message={errors.soatPhoto} />
+        </View>
       </View>
 
-      {/* Revisión técnico-mecánica */}
       <View style={{ gap: 16 }}>
         <Text
           style={{
@@ -143,20 +221,25 @@ export function DocumentsScreen() {
           vehículo.
         </Text>
 
-        <DateInput
-          label="Fecha de vencimiento"
-          value={technicalExpiration}
-          onChange={setTechnicalExpiration}
-        />
+        <View>
+          <ExpirationDateInput
+            label="Fecha de vencimiento"
+            value={technicalExpiration}
+            onChange={setTechnicalExpiration}
+          />
+          <ValidationError message={errors.technicalExpiration} />
+        </View>
 
-        <ImageInput
-          label="Fotografía de la revisión técnico-mecánica"
-          value={technicalPhoto}
-          onChange={setTechnicalPhoto}
-        />
+        <View>
+          <ImageInput
+            label="Fotografía de la revisión técnico-mecánica"
+            value={technicalPhoto}
+            onChange={setTechnicalPhoto}
+          />
+          <ValidationError message={errors.technicalPhoto} />
+        </View>
       </View>
 
-      {/* Pagos */}
       <View style={{ gap: 16 }}>
         <Text
           style={{
@@ -170,7 +253,6 @@ export function DocumentsScreen() {
 
         <View>
           <Text style={styles.label}>Correo de Mercado Pago *</Text>
-
           <TextInput
             style={styles.input}
             placeholder="correo@ejemplo.com"
@@ -181,6 +263,7 @@ export function DocumentsScreen() {
             value={mercadoPagoEmail}
             onChangeText={setMercadoPagoEmail}
           />
+          <ValidationError message={errors.mercadoPagoEmail} />
         </View>
 
         <View
@@ -224,28 +307,13 @@ export function DocumentsScreen() {
             gap: 12,
           }}
         >
-          <Switch
+          <Checkbox
+            label="Acepto los términos y condiciones y la comisión del 20 % de UberClone."
             value={acceptedTerms}
-            onValueChange={setAcceptedTerms}
-            trackColor={{
-              false: colors.border,
-              true: colors.primary,
-            }}
-            thumbColor={colors.surface}
-            accessibilityLabel="Aceptar términos y condiciones"
+            onChange={setAcceptedTerms}
           />
-
-          <Text
-            style={{
-              flex: 1,
-              color: colors.text,
-              fontSize: 14,
-            }}
-          >
-            Acepto los términos y condiciones y la comisión del 20 % de
-            UberClone.
-          </Text>
         </View>
+        <ValidationError message={errors.acceptedTerms} />
       </View>
 
       <PrimaryButton title="Enviar registro" onPress={handleSubmit} />
