@@ -3,7 +3,7 @@ import { createContext, useCallback, useEffect, useRef, useState } from 'react';
 import { initialPersonalData } from '../data/personal';
 import { initialVehicle } from '../data/vehicle';
 import { initialDocuments } from '../data/document';
-import { registerUser } from '../services/authentication';
+import { registerUser } from '../services/register';
 
 export const DriverRegistrationContext = createContext(Object.create(null));
 
