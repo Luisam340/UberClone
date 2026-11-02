@@ -11,7 +11,8 @@ import { colors } from '../../themes/colors';
 import { PrimaryButton } from '../../components/PrimaryButton';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../config/firebaseConfig';
-import { signIn } from '../../services/authentication';
+import { loginUser } from '../../services/authentication';
+import { validateAuthentication } from '../../utils/authenticationValidators';
 
 export function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -63,6 +64,12 @@ export function LoginScreen() {
           signIn(email, password);
         }}
       />
+
+      <Text style={styles.helper}>
+        El inicio de sesión estará disponible cuando integremos la
+        autenticación.
+      </Text>
+
       <TouchableOpacity>
         <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
       </TouchableOpacity>
@@ -70,3 +77,10 @@ export function LoginScreen() {
   );
 }
 
+async function signIn(email, password) {
+  try {
+    const user = await loginUser(email, password);
+  } catch (error) {
+    validateAuthentication(error);
+  }
+}

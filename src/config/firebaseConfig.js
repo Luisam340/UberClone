@@ -42,5 +42,3 @@ try {
 }
 
 export { auth };
-
-console.log('[FIREBASE] Initialized:', app.name);

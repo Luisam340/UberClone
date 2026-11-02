@@ -1,8 +1,8 @@
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
-import { DocumentsScreen } from '../driver/DocumentsScreen';
-import { PersonalDataScreen } from '../driver/PersonalDataScreen';
-import { VehicleScreen } from '../driver/VehicleScreen';
+import { DocumentsScreen } from './DocumentsScreen';
+import { PersonalDataScreen } from './PersonalDataScreen';
+import { VehicleScreen } from './VehicleScreen';
 
 import { DriverRegistrationProvider } from '../../context/DriverRegistrationContext';
 
