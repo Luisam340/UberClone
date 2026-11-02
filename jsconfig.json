@@ -1,15 +1,18 @@
 {
-    "compilerOptions": {
-        "allowJs": true,
-        "checkJs": true,
-        "noImplicitAny": false,
-        "jsx": "react-jsx",
-        "skipLibCheck": true
-    },
-    "exclude": [
-        "node_modules",
-        "android",
-        "ios",
-        ".expo"
-    ]
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noImplicitAny": false,
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "customConditions": ["react-native"]
+  },
+  "exclude": [
+    "node_modules",
+    "android",
+    "ios",
+    ".expo"
+  ]
 }

@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Text,
 } from 'react-native';
+
 import { styles } from '../../styles/app.styles';
 import { colors } from '../../themes/colors';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -14,7 +15,6 @@ import { SelectInput } from '../../components/SelectInput';
 import {
   vehicleCategories,
   vehicleColors,
-  initialVehicle,
   initialVehicleErrors,
   getVehicleErrors,
 } from '../../data/vehicle';
@@ -22,27 +22,28 @@ import { YearInput } from '../../components/DateInput';
 import { ImageInput } from '../../components/ImageInput';
 import { ValidationError } from '../../components/ValidationError';
 import { validateVehicleData } from '../../utils/registrationValidators';
+import { useDriverRegistration } from '../../hooks/useDriverRegistration';
 
-export function VehicleScreen({
-  navigation,
-  initialData = initialVehicle,
-  vehicleYear,
-  setVehicleYear,
-  onChange,
-  onSave,
-}) {
-  const [vehiclePhoto, setVehiclePhoto] = useState(initialData.vehiclePhoto);
-  const [category, setCategory] = useState(initialData.category);
-  const [licensePlate, setLicensePlate] = useState(initialData.licensePlate);
-  const [brand, setBrand] = useState(initialData.brand);
-  const [model, setModel] = useState(initialData.model);
-  const [color, setColor] = useState(initialData.color);
+export function VehicleScreen({ navigation }) {
+  const {
+    vehicleData,
+    vehicleYear,
+    setVehicleYear,
+    handleVehicleChange,
+    handleVehicleSave,
+  } = useDriverRegistration();
+
+  const [vehiclePhoto, setVehiclePhoto] = useState(vehicleData.vehiclePhoto);
+  const [category, setCategory] = useState(vehicleData.category);
+  const [licensePlate, setLicensePlate] = useState(vehicleData.licensePlate);
+  const [brand, setBrand] = useState(vehicleData.brand);
+  const [model, setModel] = useState(vehicleData.model);
+  const [color, setColor] = useState(vehicleData.color);
   const [passengerCapacity, setPassengerCapacity] = useState(
-    initialData.passengerCapacity,
+    vehicleData.passengerCapacity,
   );
 
   const [errors, setErrors] = useState(initialVehicleErrors);
-
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function VehicleScreen({
       return;
     }
 
-    const vehicleData = {
+    handleVehicleChange({
       vehiclePhoto,
       category,
       licensePlate,
@@ -60,9 +61,7 @@ export function VehicleScreen({
       vehicleYear,
       color,
       passengerCapacity,
-    };
-
-    onChange(vehicleData);
+    });
   }, [
     vehiclePhoto,
     category,
@@ -72,11 +71,11 @@ export function VehicleScreen({
     vehicleYear,
     color,
     passengerCapacity,
-    onChange,
+    handleVehicleChange,
   ]);
 
   const handleNext = () => {
-    const vehicleData = {
+    const data = {
       vehiclePhoto,
       category,
       licensePlate,
@@ -87,7 +86,7 @@ export function VehicleScreen({
       passengerCapacity,
     };
 
-    const validationErrors = validateVehicleData(vehicleData);
+    const validationErrors = validateVehicleData(data);
 
     setErrors(getVehicleErrors(validationErrors));
 
@@ -95,7 +94,7 @@ export function VehicleScreen({
       return;
     }
 
-    onSave(vehicleData);
+    handleVehicleSave(data);
     navigation.navigate('Documentos');
   };
 
@@ -192,7 +191,6 @@ export function VehicleScreen({
             placeholder="Ingresa la cantidad de pasajeros"
             placeholderTextColor={colors.textSecondary}
             keyboardType="phone-pad"
-            autoCapitalize="words"
             maxLength={1}
             value={passengerCapacity}
             onChangeText={setPassengerCapacity}

@@ -3,8 +3,6 @@ export const initialPersonalData = {
   name: '',
   idNumber: '',
   phoneNumber: '',
-  showPassword: false,
-  showPasswordRepeat: false,
   email: '',
   gender: '',
   password: '',

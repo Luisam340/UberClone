@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Text,
 } from 'react-native';
+
 import { styles } from '../../styles/app.styles';
 import { colors } from '../../themes/colors';
 import { PrimaryButton } from '../../components/PrimaryButton';
@@ -17,36 +18,28 @@ import { Eye, EyeOff } from 'lucide-react-native';
 import { ImageInput } from '../../components/ImageInput';
 import { ValidationError } from '../../components/ValidationError';
 import { validatePersonalData } from '../../utils/registrationValidators';
-import {
-  initialPersonalData,
-  initialPersonalErrors,
-  getPersonalErrors,
-} from '../../data/personal';
+import { initialPersonalErrors, getPersonalErrors } from '../../data/personal';
+import { useDriverRegistration } from '../../hooks/useDriverRegistration';
 
-export function PersonalDataScreen({
-  navigation,
-  initialData = initialPersonalData,
-  onChange,
-  onSave,
-}) {
-  const [profilePhoto, setProfilePhoto] = useState(initialData.profilePhoto);
-  const [name, setName] = useState(initialData.name);
-  const [idNumber, setIdNumber] = useState(initialData.idNumber);
-  const [phoneNumber, setPhoneNumber] = useState(initialData.phoneNumber);
-  const [showPassword, setShowPassword] = useState(initialData.showPassword);
-  const [showPasswordRepeat, setShowPasswordRepeat] = useState(
-    initialData.showPasswordRepeat,
-  );
-  const [email, setEmail] = useState(initialData.email);
-  const [gender, setGender] = useState(initialData.gender);
-  const [password, setPassword] = useState(initialData.password);
+export function PersonalDataScreen({ navigation }) {
+  const { personalData, handlePersonalChange, handlePersonalSave } =
+    useDriverRegistration();
+
+  const [profilePhoto, setProfilePhoto] = useState(personalData.profilePhoto);
+  const [name, setName] = useState(personalData.name);
+  const [idNumber, setIdNumber] = useState(personalData.idNumber);
+  const [phoneNumber, setPhoneNumber] = useState(personalData.phoneNumber);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordRepeat, setShowPasswordRepeat] = useState(false);
+  const [email, setEmail] = useState(personalData.email);
+  const [gender, setGender] = useState(personalData.gender);
+  const [password, setPassword] = useState(personalData.password);
   const [passwordRepeat, setPasswordRepeat] = useState(
-    initialData.passwordRepeat,
+    personalData.passwordRepeat,
   );
-  const [birthDate, setBirthDate] = useState(initialData.birthDate);
+  const [birthDate, setBirthDate] = useState(personalData.birthDate);
 
   const [errors, setErrors] = useState(initialPersonalErrors);
-
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -55,7 +48,7 @@ export function PersonalDataScreen({
       return;
     }
 
-    const personalData = {
+    handlePersonalChange({
       profilePhoto,
       name,
       idNumber,
@@ -65,9 +58,7 @@ export function PersonalDataScreen({
       email,
       password,
       passwordRepeat,
-    };
-
-    onChange(personalData);
+    });
   }, [
     profilePhoto,
     name,
@@ -78,11 +69,11 @@ export function PersonalDataScreen({
     email,
     password,
     passwordRepeat,
-    onChange,
+    handlePersonalChange,
   ]);
 
   const handleNext = () => {
-    const personalData = {
+    const data = {
       profilePhoto,
       name,
       idNumber,
@@ -94,7 +85,7 @@ export function PersonalDataScreen({
       passwordRepeat,
     };
 
-    const validationErrors = validatePersonalData(personalData);
+    const validationErrors = validatePersonalData(data);
 
     setErrors(getPersonalErrors(validationErrors));
 
@@ -102,7 +93,7 @@ export function PersonalDataScreen({
       return;
     }
 
-    onSave(personalData);
+    handlePersonalSave(data);
     navigation.navigate('Vehículo');
   };
 
@@ -151,7 +142,6 @@ export function PersonalDataScreen({
             placeholderTextColor={colors.textSecondary}
             keyboardType="number-pad"
             maxLength={10}
-            autoCapitalize="words"
             value={idNumber}
             onChangeText={setIdNumber}
           />
@@ -163,7 +153,6 @@ export function PersonalDataScreen({
             placeholder="Ingresa tu número de teléfono"
             placeholderTextColor={colors.textSecondary}
             keyboardType="phone-pad"
-            autoCapitalize="words"
             maxLength={10}
             value={phoneNumber}
             onChangeText={setPhoneNumber}
@@ -239,6 +228,7 @@ export function PersonalDataScreen({
               value={passwordRepeat}
               onChangeText={setPasswordRepeat}
             />
+
             <TouchableOpacity
               onPress={() => setShowPasswordRepeat(!showPasswordRepeat)}
             >

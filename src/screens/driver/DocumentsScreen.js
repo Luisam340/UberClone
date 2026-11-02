@@ -10,44 +10,45 @@ import { ValidationError } from '../../components/ValidationError';
 import { colors } from '../../themes/colors';
 import { styles } from '../../styles/app.styles';
 import { validateDocuments } from '../../utils/registrationValidators';
-import {
-  initialDocuments,
-  initialDocumentErrors,
-  getDocumentErrors,
-} from '../../data/document';
+import { initialDocumentErrors, getDocumentErrors } from '../../data/document';
+import { useDriverRegistration } from '../../hooks/useDriverRegistration';
 
-export function DocumentsScreen({
-  navigation,
-  vehicleYear,
-  initialData = initialDocuments,
-  onChange,
-  onSave,
-}) {
-  const [licenseNumber, setLicenseNumber] = useState(initialData.licenseNumber);
-  const [licenseExpiration, setLicenseExpiration] = useState(
-    initialData.licenseExpiration,
+export function DocumentsScreen() {
+  const {
+    documentsData,
+    isSubmitting,
+    handleDocumentsChange,
+    handleDocumentsSave,
+  } = useDriverRegistration();
+
+  const [licenseNumber, setLicenseNumber] = useState(
+    documentsData.licenseNumber,
   );
-  const [licensePhoto, setLicensePhoto] = useState(initialData.licensePhoto);
+  const [licenseExpiration, setLicenseExpiration] = useState(
+    documentsData.licenseExpiration,
+  );
+  const [licensePhoto, setLicensePhoto] = useState(documentsData.licensePhoto);
 
   const [soatExpiration, setSoatExpiration] = useState(
-    initialData.soatExpiration,
+    documentsData.soatExpiration,
   );
-  const [soatPhoto, setSoatPhoto] = useState(initialData.soatPhoto);
+  const [soatPhoto, setSoatPhoto] = useState(documentsData.soatPhoto);
 
   const [technicalExpiration, setTechnicalExpiration] = useState(
-    initialData.technicalExpiration,
+    documentsData.technicalExpiration,
   );
   const [technicalPhoto, setTechnicalPhoto] = useState(
-    initialData.technicalPhoto,
+    documentsData.technicalPhoto,
   );
 
   const [mercadoPagoEmail, setMercadoPagoEmail] = useState(
-    initialData.mercadoPagoEmail,
+    documentsData.mercadoPagoEmail,
   );
-  const [acceptedTerms, setAcceptedTerms] = useState(initialData.acceptedTerms);
+  const [acceptedTerms, setAcceptedTerms] = useState(
+    documentsData.acceptedTerms,
+  );
 
   const [errors, setErrors] = useState(initialDocumentErrors);
-
   const isFirstRender = useRef(true);
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export function DocumentsScreen({
       return;
     }
 
-    const documents = {
+    handleDocumentsChange({
       licenseNumber,
       licenseExpiration,
       licensePhoto,
@@ -66,9 +67,7 @@ export function DocumentsScreen({
       technicalPhoto,
       mercadoPagoEmail,
       acceptedTerms,
-    };
-
-    onChange(documents);
+    });
   }, [
     licenseNumber,
     licenseExpiration,
@@ -79,11 +78,11 @@ export function DocumentsScreen({
     technicalPhoto,
     mercadoPagoEmail,
     acceptedTerms,
-    onChange,
+    handleDocumentsChange,
   ]);
 
   const handleSubmit = () => {
-    const documents = {
+    const data = {
       licenseNumber,
       licenseExpiration,
       licensePhoto,
@@ -95,7 +94,7 @@ export function DocumentsScreen({
       acceptedTerms,
     };
 
-    const validationErrors = validateDocuments(documents);
+    const validationErrors = validateDocuments(data);
 
     setErrors(getDocumentErrors(validationErrors));
 
@@ -103,7 +102,7 @@ export function DocumentsScreen({
       return;
     }
 
-    onSave(documents);
+    handleDocumentsSave(data);
   };
 
   return (
@@ -313,10 +312,15 @@ export function DocumentsScreen({
             onChange={setAcceptedTerms}
           />
         </View>
+
         <ValidationError message={errors.acceptedTerms} />
       </View>
 
-      <PrimaryButton title="Enviar registro" onPress={handleSubmit} />
+      <PrimaryButton
+        title={isSubmitting ? 'Registrando...' : 'Enviar registro'}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 }

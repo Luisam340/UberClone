@@ -90,6 +90,10 @@ export function validatePersonalData(data) {
     errors.passwordRepeat = 'Las contraseñas no coinciden.';
   }
 
+  if (data.password.length < 8) {
+    errors.password = 'La contraseña debe tener mínimo 8 caracteres.';
+  }
+
   return errors;
 }
 
