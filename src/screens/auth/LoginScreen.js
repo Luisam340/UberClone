@@ -1,71 +1,72 @@
-import { useState } from "react";
-import {Platform, ScrollView, TextInput, View, TouchableOpacity, KeyboardAvoidingView, Text } from "react-native";
-import { styles } from "../../styles/app.styles";
-import { colors } from "../../themes/colors";
-import { PrimaryButton } from "../../components/PrimaryButton";
+import { useState } from 'react';
+import {
+  ScrollView,
+  TextInput,
+  View,
+  TouchableOpacity,
+  Text,
+} from 'react-native';
+import { styles } from '../../styles/app.styles';
+import { colors } from '../../themes/colors';
+import { PrimaryButton } from '../../components/PrimaryButton';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../config/firebaseConfig';
+import { signIn } from '../../services/authentication';
 
-export function LoginScreen({ email, setEmail, password, setPassword }) {
+export function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={styles.formContent}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="interactive"
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={styles.formContent}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.label}>Correo electrónico</Text>
+      <Text style={styles.label}>Correo electrónico</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="tucorreo@ejemplo.com"
+        placeholderTextColor={colors.textSecondary}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        autoComplete="email"
+        value={email}
+        onChangeText={setEmail}
+      />
+
+      <Text style={styles.label}>Contraseña</Text>
+      <View style={styles.passwordContainer}>
         <TextInput
-          style={styles.input}
-          placeholder="tucorreo@ejemplo.com"
+          style={styles.passwordInput}
+          placeholder="Ingresa tu contraseña"
           placeholderTextColor={colors.textSecondary}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          value={email}
-          onChangeText={setEmail}
+          secureTextEntry={!showPassword}
+          autoComplete="password"
+          value={password}
+          onChangeText={setPassword}
         />
 
-        <Text style={styles.label}>Contraseña</Text>
-        <View style={styles.passwordContainer}>
-          <TextInput
-            style={styles.passwordInput}
-            placeholder="Ingresa tu contraseña"
-            placeholderTextColor={colors.textSecondary}
-            secureTextEntry={!showPassword}
-            autoComplete="password"
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-            <Text style={styles.showPassword}>
-              {showPassword ? 'Ocultar' : 'Mostrar'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <PrimaryButton
-          title="Iniciar sesión"
-          onPress={() => {
-            // Pendiente: autenticación con el backend.
-          }}
-        />
-
-        <Text style={styles.helper}>
-          El inicio de sesión estará disponible cuando integremos la
-          autenticación.
-        </Text>
-
-        <TouchableOpacity>
-          <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+          <Text style={styles.showPassword}>
+            {showPassword ? 'Ocultar' : 'Mostrar'}
+          </Text>
         </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </View>
+
+      <PrimaryButton
+        title="Iniciar sesión"
+        onPress={() => {
+          signIn(email, password);
+        }}
+      />
+      <TouchableOpacity>
+        <Text style={styles.link}>¿Olvidaste tu contraseña?</Text>
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
+
