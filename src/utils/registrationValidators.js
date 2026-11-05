@@ -37,6 +37,21 @@ const isAdult = (birthDate) => {
 
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
+export const requiresTechnicalReview = (vehicleYear) => {
+  const currentYear = new Date().getFullYear();
+  const year = Number(vehicleYear);
+
+  if (
+    !/^\d{4}$/.test(String(vehicleYear ?? '')) ||
+    !Number.isInteger(year) ||
+    year > currentYear
+  ) {
+    return null;
+  }
+
+  return currentYear - year >= 5;
+};
+
 export function validatePersonalData(data) {
   const errors = {};
 
@@ -82,16 +97,14 @@ export function validatePersonalData(data) {
 
   if (isEmpty(data.password)) {
     errors.password = 'La contraseña es obligatoria.';
+  } else if (data.password.length < 8) {
+    errors.password = 'La contraseña debe tener mínimo 8 caracteres.';
   }
 
   if (isEmpty(data.passwordRepeat)) {
     errors.passwordRepeat = 'Debes confirmar la contraseña.';
   } else if (data.password !== data.passwordRepeat) {
     errors.passwordRepeat = 'Las contraseñas no coinciden.';
-  }
-
-  if (data.password.length < 8) {
-    errors.password = 'La contraseña debe tener mínimo 8 caracteres.';
   }
 
   return errors;
@@ -144,7 +157,7 @@ export function validateVehicleData(data) {
   if (isEmpty(data.passengerCapacity)) {
     errors.passengerCapacity = 'La capacidad es obligatoria.';
   } else if (
-    !/^\d+$/.test(data.passengerCapacity) ||
+    !/^\d+$/.test(String(data.passengerCapacity)) ||
     !Number.isInteger(capacity) ||
     capacity < 1
   ) {
@@ -156,7 +169,7 @@ export function validateVehicleData(data) {
   return errors;
 }
 
-export function validateDocuments(data) {
+export function validateDocuments(data, vehicleYear) {
   const errors = {};
 
   if (isEmpty(data.licenseNumber)) {
@@ -183,18 +196,21 @@ export function validateDocuments(data) {
     errors.soatPhoto = 'La fotografía del SOAT es obligatoria.';
   }
 
-  const hasTechnicalDate = data.technicalExpiration != null;
-  const hasTechnicalPhoto = !isEmpty(data.technicalPhoto);
+  const technicalReviewRequired = requiresTechnicalReview(vehicleYear);
 
-  if (hasTechnicalDate || hasTechnicalPhoto) {
-    if (!hasTechnicalDate) {
+  if (technicalReviewRequired === null) {
+    errors.technicalExpiration = 'Verifica el año del vehículo.';
+  } else if (technicalReviewRequired) {
+    if (!isValidDate(data.technicalExpiration)) {
       errors.technicalExpiration = 'Selecciona la fecha de vencimiento.';
     } else if (!isFutureDate(data.technicalExpiration)) {
-      errors.technicalExpiration = 'La revisión debe estar vigente.';
+      errors.technicalExpiration =
+        'La revisión técnico-mecánica debe estar vigente.';
     }
 
-    if (!hasTechnicalPhoto) {
-      errors.technicalPhoto = 'Adjunta la fotografía de la revisión.';
+    if (isEmpty(data.technicalPhoto)) {
+      errors.technicalPhoto =
+        'Adjunta la fotografía de la revisión técnico-mecánica.';
     }
   }
 

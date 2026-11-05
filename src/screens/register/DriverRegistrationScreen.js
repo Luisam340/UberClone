@@ -1,10 +1,10 @@
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
-import { DocumentsScreen } from './DocumentsScreen';
-import { PersonalDataScreen } from './PersonalDataScreen';
-import { VehicleScreen } from './VehicleScreen';
+import { PersonalDataScreen } from '../driver/PersonalDataScreen';
+import { VehicleScreen } from '../driver/VehicleScreen';
 
 import { DriverRegistrationProvider } from '../../context/DriverRegistrationContext';
+import { DocumentsScreen } from '../driver/DocumentsScreen';
 
 const Tabs = createMaterialTopTabNavigator();
 

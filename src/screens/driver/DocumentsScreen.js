@@ -9,12 +9,22 @@ import { ValidationError } from '../../components/ValidationError';
 
 import { colors } from '../../themes/colors';
 import { styles } from '../../styles/app.styles';
-import { validateDocuments } from '../../utils/registrationValidators';
+
+import {
+  validatePersonalData,
+  validateVehicleData,
+  validateDocuments,
+  requiresTechnicalReview,
+} from '../../utils/registrationValidators';
+
 import { initialDocumentErrors, getDocumentErrors } from '../../data/document';
+
 import { useDriverRegistration } from '../../hooks/useDriverRegistration';
 
 export function DocumentsScreen() {
   const {
+    personalData,
+    vehicleData,
     documentsData,
     isSubmitting,
     handleDocumentsChange,
@@ -24,19 +34,23 @@ export function DocumentsScreen() {
   const [licenseNumber, setLicenseNumber] = useState(
     documentsData.licenseNumber,
   );
+
   const [licenseExpiration, setLicenseExpiration] = useState(
     documentsData.licenseExpiration,
   );
+
   const [licensePhoto, setLicensePhoto] = useState(documentsData.licensePhoto);
 
   const [soatExpiration, setSoatExpiration] = useState(
     documentsData.soatExpiration,
   );
+
   const [soatPhoto, setSoatPhoto] = useState(documentsData.soatPhoto);
 
   const [technicalExpiration, setTechnicalExpiration] = useState(
     documentsData.technicalExpiration,
   );
+
   const [technicalPhoto, setTechnicalPhoto] = useState(
     documentsData.technicalPhoto,
   );
@@ -44,12 +58,17 @@ export function DocumentsScreen() {
   const [mercadoPagoEmail, setMercadoPagoEmail] = useState(
     documentsData.mercadoPagoEmail,
   );
+
   const [acceptedTerms, setAcceptedTerms] = useState(
     documentsData.acceptedTerms,
   );
 
   const [errors, setErrors] = useState(initialDocumentErrors);
   const isFirstRender = useRef(true);
+
+  const technicalReviewRequired = requiresTechnicalReview(
+    vehicleData.vehicleYear,
+  );
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -81,24 +100,44 @@ export function DocumentsScreen() {
     handleDocumentsChange,
   ]);
 
-  const handleSubmit = () => {
-    const data = {
-      licenseNumber,
-      licenseExpiration,
-      licensePhoto,
-      soatExpiration,
-      soatPhoto,
-      technicalExpiration,
-      technicalPhoto,
-      mercadoPagoEmail,
-      acceptedTerms,
-    };
+  useEffect(() => {
+    if (technicalReviewRequired === false) {
+      setTechnicalExpiration(null);
+      setTechnicalPhoto(null);
+    }
+  }, [technicalReviewRequired]);
 
-    const validationErrors = validateDocuments(data);
+  const data = {
+    licenseNumber,
+    licenseExpiration,
+    licensePhoto,
+    soatExpiration,
+    soatPhoto,
+    technicalExpiration:
+      technicalReviewRequired === true ? technicalExpiration : null,
+    technicalPhoto: technicalReviewRequired === true ? technicalPhoto : null,
+    mercadoPagoEmail,
+    acceptedTerms,
+  };
+
+  const personalErrors = validatePersonalData(personalData);
+  const vehicleErrors = validateVehicleData(vehicleData);
+
+  const documentErrors = validateDocuments(data, vehicleData.vehicleYear);
+
+  const isPersonalValid = !Object.values(personalErrors).some(Boolean);
+  const isVehicleValid = !Object.values(vehicleErrors).some(Boolean);
+  const isDocumentsValid = !Object.values(documentErrors).some(Boolean);
+
+  const canSubmit =
+    isPersonalValid && isVehicleValid && isDocumentsValid && !isSubmitting;
+
+  const handleSubmit = () => {
+    const validationErrors = validateDocuments(data, vehicleData.vehicleYear);
 
     setErrors(getDocumentErrors(validationErrors));
 
-    if (Object.values(validationErrors).some(Boolean)) {
+    if (!canSubmit || Object.values(validationErrors).some(Boolean)) {
       return;
     }
 
@@ -125,6 +164,7 @@ export function DocumentsScreen() {
         >
           Documentos y pagos
         </Text>
+
         <Text style={{ color: colors.textSecondary }}>
           Completa los documentos necesarios para registrar tu vehículo y
           recibir pagos por tus viajes.
@@ -144,6 +184,7 @@ export function DocumentsScreen() {
 
         <View>
           <Text style={styles.label}>Número de licencia *</Text>
+
           <TextInput
             style={styles.input}
             placeholder="Ingresa el número de licencia"
@@ -152,6 +193,7 @@ export function DocumentsScreen() {
             value={licenseNumber}
             onChangeText={setLicenseNumber}
           />
+
           <ValidationError message={errors.licenseNumber} />
         </View>
 
@@ -161,6 +203,7 @@ export function DocumentsScreen() {
             value={licenseExpiration}
             onChange={setLicenseExpiration}
           />
+
           <ValidationError message={errors.licenseExpiration} />
         </View>
 
@@ -170,6 +213,7 @@ export function DocumentsScreen() {
             value={licensePhoto}
             onChange={setLicensePhoto}
           />
+
           <ValidationError message={errors.licensePhoto} />
         </View>
       </View>
@@ -191,6 +235,7 @@ export function DocumentsScreen() {
             value={soatExpiration}
             onChange={setSoatExpiration}
           />
+
           <ValidationError message={errors.soatExpiration} />
         </View>
 
@@ -200,6 +245,7 @@ export function DocumentsScreen() {
             value={soatPhoto}
             onChange={setSoatPhoto}
           />
+
           <ValidationError message={errors.soatPhoto} />
         </View>
       </View>
@@ -216,25 +262,44 @@ export function DocumentsScreen() {
         </Text>
 
         <Text style={{ color: colors.textSecondary }}>
-          Este documento se solicita cuando corresponda según el año del
-          vehículo.
+          {technicalReviewRequired === true
+            ? 'Tu vehículo requiere una revisión técnico-mecánica vigente.'
+            : technicalReviewRequired === false
+              ? 'Tu vehículo todavía no requiere revisión técnico-mecánica según el año del modelo.'
+              : 'Completa primero el año del vehículo para determinar si requiere revisión técnico-mecánica.'}
         </Text>
 
-        <View>
+        <View
+          pointerEvents={technicalReviewRequired === true ? 'auto' : 'none'}
+          style={{ opacity: technicalReviewRequired === true ? 1 : 0.5 }}
+        >
           <ExpirationDateInput
-            label="Fecha de vencimiento"
+            label={
+              technicalReviewRequired === true
+                ? 'Fecha de vencimiento *'
+                : 'Fecha de vencimiento'
+            }
             value={technicalExpiration}
             onChange={setTechnicalExpiration}
           />
+
           <ValidationError message={errors.technicalExpiration} />
         </View>
 
-        <View>
+        <View
+          pointerEvents={technicalReviewRequired === true ? 'auto' : 'none'}
+          style={{ opacity: technicalReviewRequired === true ? 1 : 0.5 }}
+        >
           <ImageInput
-            label="Fotografía de la revisión técnico-mecánica"
+            label={
+              technicalReviewRequired === true
+                ? 'Fotografía de la revisión técnico-mecánica *'
+                : 'Fotografía de la revisión técnico-mecánica'
+            }
             value={technicalPhoto}
             onChange={setTechnicalPhoto}
           />
+
           <ValidationError message={errors.technicalPhoto} />
         </View>
       </View>
@@ -252,6 +317,7 @@ export function DocumentsScreen() {
 
         <View>
           <Text style={styles.label}>Correo de Mercado Pago *</Text>
+
           <TextInput
             style={styles.input}
             placeholder="correo@ejemplo.com"
@@ -262,6 +328,7 @@ export function DocumentsScreen() {
             value={mercadoPagoEmail}
             onChangeText={setMercadoPagoEmail}
           />
+
           <ValidationError message={errors.mercadoPagoEmail} />
         </View>
 
@@ -319,7 +386,7 @@ export function DocumentsScreen() {
       <PrimaryButton
         title={isSubmitting ? 'Registrando...' : 'Enviar registro'}
         onPress={handleSubmit}
-        disabled={isSubmitting}
+        disabled={!canSubmit}
       />
     </ScrollView>
   );

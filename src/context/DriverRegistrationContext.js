@@ -1,15 +1,20 @@
-import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useRef, useState } from 'react';
 
 import { initialPersonalData } from '../data/personal';
 import { initialVehicle } from '../data/vehicle';
 import { initialDocuments } from '../data/document';
+
+import {
+  validatePersonalData,
+  validateVehicleData,
+  validateDocuments,
+} from '../utils/registrationValidators';
+
 import { registerUser } from '../services/register';
 
-export const DriverRegistrationContext = createContext(Object.create(null));
+export const DriverRegistrationContext = createContext(null);
 
 export function DriverRegistrationProvider({ children }) {
-  const [vehicleYear, setVehicleYear] = useState(null);
-
   const [personalData, setPersonalData] = useState(initialPersonalData);
   const [vehicleData, setVehicleData] = useState(initialVehicle);
   const [documentsData, setDocumentsData] = useState(initialDocuments);
@@ -21,6 +26,20 @@ export function DriverRegistrationProvider({ children }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
 
+  // El año del vehículo se obtiene del mismo objeto vehicleData.
+  const vehicleYear = vehicleData.vehicleYear;
+
+  // Se conserva para mantener compatibilidad con VehicleScreen.
+  const setVehicleYear = useCallback((year) => {
+    setVehicleData((previousData) => ({
+      ...previousData,
+      vehicleYear: year,
+    }));
+
+    setVehicleCompleted(false);
+    setDocumentsCompleted(false);
+  }, []);
+
   const handlePersonalChange = useCallback((data) => {
     setPersonalData(data);
     setPersonalCompleted(false);
@@ -28,20 +47,50 @@ export function DriverRegistrationProvider({ children }) {
   }, []);
 
   const handlePersonalSave = useCallback((data) => {
+    const validationErrors = validatePersonalData(data);
+    const isValid = !Object.values(validationErrors).some(Boolean);
+
     setPersonalData(data);
-    setPersonalCompleted(true);
+    setPersonalCompleted(isValid);
+
+    if (!isValid) {
+      setDocumentsCompleted(false);
+    }
+
+    return isValid;
   }, []);
 
   const handleVehicleChange = useCallback((data) => {
-    setVehicleData(data);
+    setVehicleData((previousData) => ({
+      ...previousData,
+      ...data,
+    }));
+
     setVehicleCompleted(false);
     setDocumentsCompleted(false);
   }, []);
 
-  const handleVehicleSave = useCallback((data) => {
-    setVehicleData(data);
-    setVehicleCompleted(true);
-  }, []);
+  const handleVehicleSave = useCallback(
+    (data) => {
+      const updatedData = {
+        ...vehicleData,
+        ...data,
+      };
+
+      const validationErrors = validateVehicleData(updatedData);
+      const isValid = !Object.values(validationErrors).some(Boolean);
+
+      setVehicleData(updatedData);
+      setVehicleCompleted(isValid);
+
+      if (!isValid) {
+        setDocumentsCompleted(false);
+      }
+
+      return isValid;
+    },
+    [vehicleData],
+  );
 
   const handleDocumentsChange = useCallback((data) => {
     setDocumentsData(data);
@@ -54,11 +103,31 @@ export function DriverRegistrationProvider({ children }) {
         return;
       }
 
+      const personalErrors = validatePersonalData(personalData);
+      const vehicleErrors = validateVehicleData(vehicleData);
+      const documentErrors = validateDocuments(data, vehicleData.vehicleYear);
+
+      const isPersonalValid = !Object.values(personalErrors).some(Boolean);
+
+      const isVehicleValid = !Object.values(vehicleErrors).some(Boolean);
+
+      const isDocumentsValid = !Object.values(documentErrors).some(Boolean);
+
       setDocumentsData(data);
 
-      if (!personalCompleted || !vehicleCompleted) {
+      if (
+        !personalCompleted ||
+        !vehicleCompleted ||
+        !isPersonalValid ||
+        !isVehicleValid ||
+        !isDocumentsValid
+      ) {
         setDocumentsCompleted(false);
-        console.log('[REGISTRATION] Previous steps are incomplete');
+
+        console.warn(
+          '[REGISTRATION] Registration blocked: incomplete or invalid data.',
+        );
+
         return;
       }
 
@@ -70,8 +139,6 @@ export function DriverRegistrationProvider({ children }) {
           personalData.email,
           personalData.password,
         );
-
-        setDocumentsCompleted(true);
 
         const {
           password,
@@ -88,10 +155,15 @@ export function DriverRegistrationProvider({ children }) {
           documents: data,
         };
 
-        console.log('[AUTH] User created:', user.uid);
-        console.log('[REGISTRATION] Ready for Firestore');
+        // Pendiente: guardar registration en Firestore.
+        // Por ahora únicamente se crea el usuario en Firebase Authentication.
+        void registration;
 
-        // registration se utilizará en el servicio de Firestore.
+        setDocumentsCompleted(true);
+
+        console.log('[AUTH] User created:', user.uid);
+
+        console.log('[REGISTRATION] Ready for Firestore');
       } catch (error) {
         setDocumentsCompleted(false);
 
@@ -107,12 +179,6 @@ export function DriverRegistrationProvider({ children }) {
     },
     [personalCompleted, vehicleCompleted, personalData, vehicleData],
   );
-
-  useEffect(() => {
-    console.log('[REGISTRATION] Personal saved:', personalCompleted);
-    console.log('[REGISTRATION] Vehicle saved:', vehicleCompleted);
-    console.log('[REGISTRATION] Documents saved:', documentsCompleted);
-  }, [personalCompleted, vehicleCompleted, documentsCompleted]);
 
   return (
     <DriverRegistrationContext.Provider
