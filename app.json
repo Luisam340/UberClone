@@ -16,7 +16,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.luisamosquera.UberClone"
     },
     "web": {
       "favicon": "./assets/uber-clone.png"
@@ -48,7 +52,9 @@
           "cameraPermission": "UberClone necesita acceder a la cámara para tomar fotografías del conductor, vehículo y documentos.",
           "microphonePermission": "UberClone necesita acceder al micrófono cuando se utilicen funciones de captura audiovisual."
         }
-      ]
+      ],
+      "expo-maps",
+      "expo-image"
     ]
   }
 }

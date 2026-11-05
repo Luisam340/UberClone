@@ -189,6 +189,7 @@ export function DocumentsScreen() {
             style={styles.input}
             placeholder="Ingresa el número de licencia"
             placeholderTextColor={colors.textSecondary}
+            maxLength={10}
             keyboardType="number-pad"
             value={licenseNumber}
             onChangeText={setLicenseNumber}

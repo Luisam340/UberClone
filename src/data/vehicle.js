@@ -20,6 +20,25 @@ export const vehicleColors = [
   { label: 'Otro', value: 'other' },
 ];
 
+export const vehicleImages = {
+  white: require('../../assets/cars/white.png'),
+  black: require('../../assets/cars/black.png'),
+  gray: require('../../assets/cars/gray.png'),
+  silver: require('../../assets/cars/silver.png'),
+  red: require('../../assets/cars/red.png'),
+  blue: require('../../assets/cars/blue.png'),
+  green: require('../../assets/cars/green.png'),
+  yellow: require('../../assets/cars/yellow.png'),
+  beige: require('../../assets/cars/beige.png'),
+  brown: require('../../assets/cars/brown.png'),
+  orange: require('../../assets/cars/orange.png'),
+  gold: require('../../assets/cars/gold.png'),
+};
+
+export const getVehicleImage = (color) => {
+  return vehicleImages[color?.toLowerCase()] ?? vehicleImages.white;
+};
+
 export const initialVehicle = {
   vehiclePhoto: null,
   category: '',

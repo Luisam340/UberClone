@@ -3,6 +3,8 @@ import { fetch } from 'expo/fetch';
 
 const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const baseUrl = process.env.EXPO_PUBLIC_BASE_URL;
+const uploadImageUrl = process.env.EXPO_PUBLIC_UPLOAD_IMAGE;
 
 export const uploadImage = async (imageUri) => {
   if (!cloudName || !uploadPreset) {
@@ -25,7 +27,7 @@ export const uploadImage = async (imageUri) => {
   formData.append('upload_preset', uploadPreset);
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    `${baseUrl}/${cloudName}/${uploadImageUrl}`,
     {
       method: 'POST',
       body: formData,
