@@ -11,8 +11,10 @@ import {
 } from '../utils/registrationValidators';
 
 import { registerUser } from '../services/register';
+import { saveDriver } from '../services/driver';
+import { uploadImage } from '../services/cloudinary';
 
-export const DriverRegistrationContext = createContext(null);
+export const DriverRegistrationContext = createContext(Object.create(null));
 
 export function DriverRegistrationProvider({ children }) {
   const [personalData, setPersonalData] = useState(initialPersonalData);
@@ -25,11 +27,10 @@ export function DriverRegistrationProvider({ children }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submittingRef = useRef(false);
+  const createdUserRef = useRef(null);
 
-  // El año del vehículo se obtiene del mismo objeto vehicleData.
   const vehicleYear = vehicleData.vehicleYear;
 
-  // Se conserva para mantener compatibilidad con VehicleScreen.
   const setVehicleYear = useCallback((year) => {
     setVehicleData((previousData) => ({
       ...previousData,
@@ -82,10 +83,7 @@ export function DriverRegistrationProvider({ children }) {
 
       setVehicleData(updatedData);
       setVehicleCompleted(isValid);
-
-      if (!isValid) {
-        setDocumentsCompleted(false);
-      }
+      setDocumentsCompleted(false);
 
       return isValid;
     },
@@ -108,9 +106,7 @@ export function DriverRegistrationProvider({ children }) {
       const documentErrors = validateDocuments(data, vehicleData.vehicleYear);
 
       const isPersonalValid = !Object.values(personalErrors).some(Boolean);
-
       const isVehicleValid = !Object.values(vehicleErrors).some(Boolean);
-
       const isDocumentsValid = !Object.values(documentErrors).some(Boolean);
 
       setDocumentsData(data);
@@ -123,22 +119,35 @@ export function DriverRegistrationProvider({ children }) {
         !isDocumentsValid
       ) {
         setDocumentsCompleted(false);
-
-        console.warn(
-          '[REGISTRATION] Registration blocked: incomplete or invalid data.',
-        );
-
         return;
       }
 
       submittingRef.current = true;
       setIsSubmitting(true);
+      setDocumentsCompleted(false);
 
       try {
-        const user = await registerUser(
-          personalData.email,
-          personalData.password,
-        );
+        let user = createdUserRef.current;
+
+        if (
+          !user ||
+          user.email?.toLowerCase() !== personalData.email.trim().toLowerCase()
+        ) {
+          user = await registerUser(personalData.email, personalData.password);
+
+          createdUserRef.current = user;
+        }
+
+        const profileImage = await uploadImage(personalData.profilePhoto);
+        const vehicleImage = await uploadImage(vehicleData.vehiclePhoto);
+        const licenseImage = await uploadImage(data.licensePhoto);
+        const soatImage = await uploadImage(data.soatPhoto);
+
+        let technicalImage = null;
+
+        if (data.technicalPhoto) {
+          technicalImage = await uploadImage(data.technicalPhoto);
+        }
 
         const {
           password,
@@ -149,29 +158,37 @@ export function DriverRegistrationProvider({ children }) {
         } = personalData;
 
         const registration = {
-          uid: user.uid,
-          personal: safePersonalData,
-          vehicle: vehicleData,
-          documents: data,
+          personal: {
+            ...safePersonalData,
+            profilePhotoUrl: profileImage.url,
+            profilePhotoPublicId: profileImage.publicId,
+          },
+          vehicle: {
+            ...vehicleData,
+            vehiclePhotoUrl: vehicleImage.url,
+            vehiclePhotoPublicId: vehicleImage.publicId,
+          },
+          documents: {
+            ...data,
+            licensePhotoUrl: licenseImage.url,
+            licensePhotoPublicId: licenseImage.publicId,
+            soatPhotoUrl: soatImage.url,
+            soatPhotoPublicId: soatImage.publicId,
+            technicalPhotoUrl: technicalImage?.url || null,
+            technicalPhotoPublicId: technicalImage?.publicId || null,
+          },
         };
 
-        // Pendiente: guardar registration en Firestore.
-        // Por ahora únicamente se crea el usuario en Firebase Authentication.
-        void registration;
+        await saveDriver(user.uid, registration);
 
         setDocumentsCompleted(true);
-
-        console.log('[AUTH] User created:', user.uid);
-
-        console.log('[REGISTRATION] Ready for Firestore');
       } catch (error) {
         setDocumentsCompleted(false);
 
-        if (error !== null && typeof error === 'object' && 'code' in error) {
-          console.error('[AUTH] Registration failed:', error.code);
-        } else {
-          console.error('[AUTH] Registration failed');
-        }
+        console.error(
+          '[REGISTRATION] Registration failed:',
+          error?.message || error,
+        );
       } finally {
         submittingRef.current = false;
         setIsSubmitting(false);

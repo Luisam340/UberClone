@@ -1,11 +1,14 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  getFirestore,
+  setLogLevel,
+} from 'firebase/firestore';
 import {
   initializeAuth,
   getAuth,
   getReactNativePersistence,
 } from 'firebase/auth';
-
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -20,7 +23,27 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+let db;
+
+try {
+  db = initializeFirestore(app, {
+    experimentalForceLongPolling: true,
+    useFetchStreams: false,
+  });
+} catch (error) {
+  if (
+    error !== null &&
+    typeof error === 'object' &&
+    'code' in error &&
+    error.code === 'failed-precondition'
+  ) {
+    db = getFirestore(app);
+  } else {
+    throw error;
+  }
+}
+setLogLevel('error');
+export { db };
 
 let auth;
 

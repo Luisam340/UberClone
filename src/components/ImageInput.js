@@ -9,11 +9,10 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera } from 'lucide-react-native';
-
 import { colors } from '../themes/colors';
 import { styles } from '../styles/app.styles';
 
-export function ImageInput({ label, value, onChange }) {
+export function ImageInput({ label, value, onChange, disabled = false }) {
   const [loading, setLoading] = useState(false);
 
   const checkCameraPermission = async () => {
@@ -57,8 +56,7 @@ export function ImageInput({ label, value, onChange }) {
   };
 
   const selectImage = async (source) => {
-    if (loading) return;
-
+    if (loading || disabled) return;
     try {
       setLoading(true);
 
@@ -78,7 +76,7 @@ export function ImageInput({ label, value, onChange }) {
       } else {
         result = await ImagePicker.launchImageLibraryAsync({
           mediaTypes: ['images'],
-          allowsEditing: true,
+          allowsEditing: false,
           quality: 0.8,
         });
       }
@@ -93,6 +91,8 @@ export function ImageInput({ label, value, onChange }) {
         onChange(imageUri);
       }
     } catch (error) {
+      console.error('[IMAGE] Selection failed:', error);
+
       Alert.alert('Error', 'No fue posible seleccionar la imagen.');
     } finally {
       setLoading(false);
@@ -100,7 +100,7 @@ export function ImageInput({ label, value, onChange }) {
   };
 
   const handleSelectImage = () => {
-    if (loading) return;
+    if (loading || disabled) return;
 
     Alert.alert(label, '¿De dónde quieres obtener la imagen?', [
       {
@@ -130,13 +130,16 @@ export function ImageInput({ label, value, onChange }) {
           flexDirection: 'row',
           alignItems: 'center',
           gap: 16,
-          opacity: loading ? 0.6 : 1,
+          opacity: loading || disabled ? 0.5 : 1,
         }}
         activeOpacity={0.8}
         onPress={handleSelectImage}
-        disabled={loading}
+        disabled={loading || disabled}
         accessibilityRole="button"
         accessibilityLabel={value ? `Cambiar ${label}` : `Seleccionar ${label}`}
+        accessibilityState={{
+          disabled: loading || disabled,
+        }}
       >
         {value ? (
           <Image
@@ -166,7 +169,6 @@ export function ImageInput({ label, value, onChange }) {
                 ? 'Imagen seleccionada'
                 : 'Seleccionar imagen'}
           </Text>
-
           <Text
             style={{
               color: colors.textSecondary,
