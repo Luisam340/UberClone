@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { FlatList, Modal, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { CalendarDays } from 'lucide-react-native';
 
 import { colors } from '../themes/colors';
 import { styles } from '../styles/app.styles';
-import { CalendarDays } from 'lucide-react-native';
 
 export function DateInput({ label, value, onChange }) {
   const [visible, setVisible] = useState(false);
@@ -12,6 +12,7 @@ export function DateInput({ label, value, onChange }) {
   return (
     <View>
       <Text style={styles.label}>{label}</Text>
+
       <TouchableOpacity
         style={styles.dateInput}
         activeOpacity={0.8}
@@ -47,8 +48,12 @@ export function YearInput({ label, value, onChange }) {
   const [visible, setVisible] = useState(false);
 
   const currentYear = new Date().getFullYear();
+  const maxVehicleYear = currentYear + 1;
 
-  const years = Array.from({ length: 50 }, (_, index) => currentYear - index);
+  const years = Array.from(
+    { length: 50 },
+    (_, index) => maxVehicleYear - index,
+  );
 
   return (
     <View>
@@ -96,7 +101,13 @@ export function YearInput({ label, value, onChange }) {
             }}
           >
             <Text
-              style={[styles.label, { textAlign: 'center', marginBottom: 16 }]}
+              style={[
+                styles.label,
+                {
+                  textAlign: 'center',
+                  marginBottom: 16,
+                },
+              ]}
             >
               Seleccionar año
             </Text>
@@ -121,7 +132,7 @@ export function YearInput({ label, value, onChange }) {
                 >
                   <Text
                     style={{
-                      color: colors.text,
+                      color: value === item ? colors.primary : colors.text,
                       fontSize: 17,
                       fontWeight: value === item ? '700' : '400',
                     }}

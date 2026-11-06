@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { iconsTabs } from '../data/icons';
 import { colors } from '../themes/colors';
 import HomeScreen from '../screens/driver/HomeScreen';
-import ProfileScreen from '../screens/driver/PrifileScreen';
+import ProfileScreen from '../screens/driver/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 

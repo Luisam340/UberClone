@@ -5,7 +5,6 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { AuthContext } from '../context/AuthContext';
 import { AuthTabs } from '../screens/auth/AuthTabs';
 import { DriverRegistrationScreen } from '../screens/register/DriverRegistrationScreen';
-import HomeScreen from '../screens/driver/HomeScreen';
 import { colors } from '../themes/colors';
 import DriverTabs from './DriverTabs';
 
@@ -30,15 +29,34 @@ export default function UberCloneStack() {
   }
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
       {user ? (
         <Stack.Screen name="Driver" component={DriverTabs} />
       ) : (
         <>
           <Stack.Screen name="Autenticacion" component={AuthTabs} />
+
           <Stack.Screen
             name="RegisterDriver"
             component={DriverRegistrationScreen}
+            options={{
+              headerShown: true,
+              title: 'Registro del conductor',
+              headerBackTitle: 'Atrás',
+              headerTintColor: colors.primary,
+              headerStyle: {
+                backgroundColor: colors.background,
+              },
+              headerShadowVisible: false,
+              headerTitleStyle: {
+                color: colors.text,
+                fontWeight: '600',
+              },
+            }}
           />
         </>
       )}

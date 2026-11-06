@@ -32,14 +32,18 @@ export default function HomeScreen() {
   const [seconds, setSeconds] = useState(0);
   const [accountValidated, setAccountValidated] = useState(false);
   const [loadingApproval, setLoadingApproval] = useState(true);
+  const [driverName, setDriverName] = useState('Conductor');
 
   const snapPoints = useMemo(() => ['25%', '45%', '65%'], []);
 
   const availableRef = useRef(false);
   const writeInProgress = useRef(false);
 
+  // Consultar el nombre y la aprobación desde Firestore.
   useEffect(() => {
     if (!user?.uid) {
+      availableRef.current = false;
+      setDriverName('Conductor');
       setAccountValidated(false);
       setLoadingApproval(false);
       return;
@@ -47,6 +51,7 @@ export default function HomeScreen() {
 
     setLoadingApproval(true);
     setAccountValidated(false);
+    setDriverName('Conductor');
 
     const driverRef = doc(db, 'drivers', user.uid);
 
@@ -54,21 +59,30 @@ export default function HomeScreen() {
       driverRef,
       (snapshot) => {
         const driverData = snapshot.data();
+
         const approved = driverData?.accountValidated === true;
+
+        const name =
+          driverData?.personal?.name || user?.displayName || 'Conductor';
+
         setAccountValidated(approved);
+        setDriverName(name);
         setLoadingApproval(false);
       },
       (error) => {
         console.error('[HomeScreen] Approval error:', error);
 
+        availableRef.current = false;
+        setDriverName('Conductor');
         setAccountValidated(false);
         setLoadingApproval(false);
       },
     );
 
     return () => unsubscribe();
-  }, [user?.uid]);
+  }, [user?.uid, user?.displayName]);
 
+  // Detener el seguimiento si la cuenta pierde aprobación.
   useEffect(() => {
     if (loadingApproval || !accountValidated) {
       availableRef.current = false;
@@ -76,6 +90,8 @@ export default function HomeScreen() {
       setSeconds(0);
     }
   }, [loadingApproval, accountValidated]);
+
+  // Sincronizar la disponibilidad.
   useEffect(() => {
     availableRef.current = available;
 
@@ -83,6 +99,8 @@ export default function HomeScreen() {
       availableRef.current = false;
     };
   }, [available]);
+
+  // Guardar la ubicación simulada en Firestore.
   const saveDriverLocation = useCallback(
     async (position) => {
       if (!user?.uid || !availableRef.current || writeInProgress.current) {
@@ -118,6 +136,8 @@ export default function HomeScreen() {
     },
     [user?.uid],
   );
+
+  // Tiempo transcurrido desde que se activa Disponible.
   useEffect(() => {
     if (!available) {
       return;
@@ -129,6 +149,7 @@ export default function HomeScreen() {
 
     return () => clearInterval(interval);
   }, [available]);
+
   const toggle = () => {
     if (loadingApproval || !accountValidated) {
       return;
@@ -143,15 +164,33 @@ export default function HomeScreen() {
 
   const availabilityDisabled = loadingApproval || !accountValidated;
 
+  // Datos dinámicos del encabezado.
+  const firstName = driverName.trim().split(/\s+/)[0] || 'Conductor';
+
+  const currentDate = new Intl.DateTimeFormat('es-CO', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Bogota',
+  }).format(new Date());
+
+  const formattedDate =
+    currentDate.charAt(0).toUpperCase() + currentDate.slice(1);
+
   return (
     <View style={styles.screen}>
       <ScreenHeader
-        title="Hola, Luisa"
-        subtitle="Jueves, 5 de noviembre"
-        back={undefined}
-        onBack={undefined}
+        title={`Hola, ${firstName}`}
+        subtitle={formattedDate}
+        // profilePhotoUrl={profilePhotoUrl}
+        initials={driverName
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part.charAt(0).toUpperCase())
+          .join('')}
       />
-
       <Map
         origin={origin}
         moving={available && !availabilityDisabled}
@@ -196,7 +235,12 @@ export default function HomeScreen() {
         >
           <BottomSheetView style={styles.sheetContent}>
             <View style={styles.row}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
+              <View
+                style={{
+                  flex: 1,
+                  paddingRight: 12,
+                }}
+              >
                 <Text style={styles.sectionTitle}>
                   {available ? 'Estás disponible' : 'No estás disponible'}
                 </Text>
