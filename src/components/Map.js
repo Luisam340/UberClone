@@ -1,14 +1,29 @@
-import { AppleMaps } from 'expo-maps';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { LocateFixed } from 'lucide-react-native';
 import { styles } from '../styles/app.styles';
 import { colors } from '../themes/colors';
-import { useImage } from 'expo-image';
-
 import { getRandomLocation } from '../data/simulatedLocations';
-import { LocateFixed } from 'lucide-react-native';
 import { getDrivingRoute } from '../services/routeDriver';
-import { getVehicleImage } from '../data/vehicle';
+import {
+  getVehicleImage,
+  UPDATE_INTERVAL,
+  VEHICLE_SPEED,
+  TURN_SPEED,
+  ACCELERATION,
+  IMAGE_HEADING_OFFSET,
+  PATH_UPDATE_FRAMES,
+  VEHICLE_ICON_SIZE,
+} from '../data/vehicle';
+import {
+  buildRoute,
+  getPositionAtDistance,
+  getSmoothedHeading,
+  getTargetSpeed,
+  approachValue,
+  rotateTowards,
+} from '../utils/vehicleFunctions';
 
 export function Map({
   origin,
@@ -18,80 +33,180 @@ export function Map({
   onLocationChange,
 }) {
   const mapRef = useRef(null);
-  const routeIndex = useRef(0);
-  const driverVehicle = { color: 'red' };
-  const vehicleSource = getVehicleImage(driverVehicle.color);
-  const vehicleIcon = useImage(vehicleSource, {
-    maxWidth: 64,
-    maxHeight: 64,
-  });
-  const centerOnDriver = () => {
-    mapRef.current?.setCameraPosition({
-      coordinates: tracking.position,
-      zoom: 17,
-    });
-  };
+  const positionRef = useRef(null);
+  const headingRef = useRef(0);
+  const speedRef = useRef(VEHICLE_SPEED);
+  const callbackRef = useRef(onLocationChange);
+  const initializedRef = useRef(false);
+
   const [initialLocation] = useState(() => origin || getRandomLocation());
+
   const [tracking, setTracking] = useState(() => {
-    const initialPosition = {
+    const position = {
       latitude: initialLocation.latitude,
       longitude: initialLocation.longitude,
     };
 
+    positionRef.current = position;
+
     return {
-      position: initialPosition,
-      path: [initialPosition],
+      position,
+      heading: 0,
+      path: [position],
     };
   });
 
+  const vehicleSource = getVehicleImage('red');
+
   useEffect(() => {
-    if (!moving) {
-      return;
-    }
+    callbackRef.current = onLocationChange;
+  }, [onLocationChange]);
+
+  useEffect(() => {
+    if (!moving) return;
 
     let cancelled = false;
-    let interval;
+    let interval = null;
+    let finishAnimation = null;
+    let frameCount = 0;
 
     const startSimulation = async () => {
-      try {
-        const destination = getRandomLocation();
+      while (!cancelled) {
+        let coordinates;
 
-        const coordinates = await getDrivingRoute(
-          tracking.position,
-          destination,
-        );
+        try {
+          coordinates = await getDrivingRoute(
+            positionRef.current,
+            getRandomLocation(),
+          );
+        } catch (error) {
+          if (!cancelled) {
+            console.error('[Map] Routing error:', error);
+          }
 
-        if (cancelled || coordinates.length === 0) {
           return;
         }
 
-        routeIndex.current = 0;
+        if (cancelled) return;
 
-        setTracking({
-          position: coordinates[0],
-          path: [coordinates[0]],
-        });
+        if (!coordinates || coordinates.length < 2) {
+          console.warn('[Map] Invalid route');
+          return;
+        }
 
-        interval = setInterval(() => {
-          const nextIndex = routeIndex.current + 1;
+        const drivingRoute = buildRoute(coordinates);
 
-          if (nextIndex >= coordinates.length) {
-            clearInterval(interval);
-            return;
+        if (drivingRoute.points.length < 2 || drivingRoute.totalDistance <= 0) {
+          return;
+        }
+
+        if (!initializedRef.current) {
+          const initialHeading = getSmoothedHeading(drivingRoute, 0);
+
+          if (initialHeading !== null) {
+            headingRef.current = initialHeading;
           }
 
-          const nextPosition = coordinates[nextIndex];
-
-          routeIndex.current = nextIndex;
+          initializedRef.current = true;
 
           setTracking((previous) => ({
-            position: nextPosition,
-            path: [...previous.path.slice(-199), nextPosition],
+            ...previous,
+            heading: headingRef.current,
           }));
-          onLocationChange?.(nextPosition);
-        }, 3000);
-      } catch (error) {
-        console.error('[Map] Routing error:', error);
+        }
+
+        let traveledDistance = 0;
+        let lastUpdate = Date.now();
+
+        await new Promise((resolve) => {
+          let finished = false;
+
+          const finish = () => {
+            if (finished) return;
+
+            finished = true;
+
+            if (interval !== null) {
+              clearInterval(interval);
+              interval = null;
+            }
+
+            finishAnimation = null;
+            resolve();
+          };
+
+          finishAnimation = finish;
+
+          interval = setInterval(() => {
+            if (cancelled) {
+              finish();
+              return;
+            }
+
+            const now = Date.now();
+
+            const elapsed = Math.min(
+              Math.max((now - lastUpdate) / 1000, 0),
+              0.2,
+            );
+
+            lastUpdate = now;
+
+            const targetSpeed = getTargetSpeed(drivingRoute, traveledDistance);
+
+            speedRef.current = approachValue(
+              speedRef.current,
+              targetSpeed,
+              ACCELERATION * elapsed,
+            );
+
+            traveledDistance = Math.min(
+              drivingRoute.totalDistance,
+              traveledDistance + speedRef.current * elapsed,
+            );
+
+            const nextPosition = getPositionAtDistance(
+              drivingRoute,
+              traveledDistance,
+            );
+
+            const targetHeading = getSmoothedHeading(
+              drivingRoute,
+              traveledDistance,
+            );
+
+            if (targetHeading !== null) {
+              headingRef.current = rotateTowards(
+                headingRef.current,
+                targetHeading,
+                TURN_SPEED * elapsed,
+              );
+            }
+
+            positionRef.current = nextPosition;
+            frameCount++;
+
+            const shouldUpdatePath =
+              frameCount % PATH_UPDATE_FRAMES === 0 ||
+              traveledDistance >= drivingRoute.totalDistance;
+
+            setTracking((previous) => ({
+              position: nextPosition,
+              heading: headingRef.current,
+              path: shouldUpdatePath
+                ? [...previous.path.slice(-199), nextPosition]
+                : previous.path,
+            }));
+
+            if (shouldUpdatePath) {
+              callbackRef.current?.(nextPosition);
+            }
+
+            if (traveledDistance >= drivingRoute.totalDistance) {
+              finish();
+            }
+          }, UPDATE_INTERVAL);
+        });
       }
     };
 
@@ -99,52 +214,87 @@ export function Map({
 
     return () => {
       cancelled = true;
-      clearInterval(interval);
+
+      if (finishAnimation) {
+        finishAnimation();
+      }
+
+      if (interval !== null) {
+        clearInterval(interval);
+      }
     };
-  }, [moving, onLocationChange]);
+  }, [moving]);
+
+  const centerOnDriver = () => {
+    const position = positionRef.current;
+
+    if (!position) return;
+
+    mapRef.current?.animateToRegion(
+      {
+        ...position,
+        latitudeDelta: 0.006,
+        longitudeDelta: 0.006,
+      },
+      500,
+    );
+  };
+
+  const vehicleRotation = (tracking.heading - IMAGE_HEADING_OFFSET + 360) % 360;
 
   return (
     <View style={styles.map}>
-      <AppleMaps.View
+      <MapView
         ref={mapRef}
         style={styles.mapCanvas}
-        cameraPosition={{
-          coordinates: {
-            latitude: initialLocation.latitude,
-            longitude: initialLocation.longitude,
-          },
-          zoom: 14,
+        initialRegion={{
+          latitude: initialLocation.latitude,
+          longitude: initialLocation.longitude,
+          latitudeDelta: 0.03,
+          longitudeDelta: 0.03,
         }}
-        annotations={[
-          {
-            id: 'simulated-driver',
-            coordinates: tracking.position,
-            icon: vehicleIcon ?? undefined,
-          },
-        ]}
-        polylines={
-          route && tracking.path.length > 1
-            ? [
-                {
-                  id: 'simulated-route',
-                  coordinates: tracking.path,
-                  color: colors.primary,
-                  width: 4,
-                },
-              ]
-            : []
-        }
-        properties={{
-          isMyLocationEnabled: false,
-          isTrafficEnabled: false,
-        }}
-        uiSettings={{
-          compassEnabled: false,
-          myLocationButtonEnabled: false,
-        }}
-      />
+        showsUserLocation={false}
+        showsTraffic={false}
+        showsCompass={false}
+        showsMyLocationButton={false}
+      >
+        <Marker
+          coordinate={tracking.position}
+          anchor={{ x: 0.5, y: 0.5 }}
+          tracksViewChanges={true}
+        >
+          <View
+            collapsable={false}
+            style={{
+              width: VEHICLE_ICON_SIZE,
+              height: VEHICLE_ICON_SIZE,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Image
+              source={vehicleSource}
+              resizeMode="contain"
+              style={{
+                width: VEHICLE_ICON_SIZE,
+                height: VEHICLE_ICON_SIZE,
+                transform: [{ rotate: `${vehicleRotation}deg` }],
+              }}
+            />
+          </View>
+        </Marker>
+
+        {route && tracking.path.length > 1 && (
+          <Polyline
+            coordinates={tracking.path}
+            strokeColor={colors.primary}
+            strokeWidth={4}
+          />
+        )}
+      </MapView>
 
       {children}
+
       <Pressable
         onPress={centerOnDriver}
         accessibilityRole="button"

@@ -65,3 +65,16 @@ export const getVehicleErrors = (validationErrors) => ({
   ...initialVehicleErrors,
   ...validationErrors,
 });
+
+export const UPDATE_INTERVAL = 50;
+export const VEHICLE_SPEED = 8;
+export const MIN_TURN_SPEED = 2.5;
+export const TURN_SPEED = 180;
+export const ACCELERATION = 3;
+export const EARTH_RADIUS = 6371000;
+export const IMAGE_HEADING_OFFSET = 180;
+export const HEADING_LOOKAHEAD = 3;
+export const HEADING_LOOKBEHIND = 3;
+export const CURVE_DETECTION_DISTANCE = 12;
+export const PATH_UPDATE_FRAMES = 5;
+export const VEHICLE_ICON_SIZE = 48;

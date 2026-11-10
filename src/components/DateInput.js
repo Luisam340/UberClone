@@ -1,10 +1,19 @@
 import { useState } from 'react';
-import { FlatList, Modal, Text, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  LogBox,
+  Modal,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { CalendarDays } from 'lucide-react-native';
 
 import { colors } from '../themes/colors';
 import { styles } from '../styles/app.styles';
+
+LogBox.ignoreLogs(['DateTimePicker: `onChange` is deprecated.']);
 
 export function DateInput({ label, value, onChange }) {
   const [visible, setVisible] = useState(false);

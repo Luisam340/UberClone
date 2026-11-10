@@ -66,8 +66,10 @@ export function DocumentsScreen() {
   const [errors, setErrors] = useState(initialDocumentErrors);
   const isFirstRender = useRef(true);
 
+  const firstRegistrationDate = vehicleData.firstRegistrationDate;
+
   const technicalReviewRequired = requiresTechnicalReview(
-    vehicleData.vehicleYear,
+    firstRegistrationDate,
   );
 
   useEffect(() => {
@@ -123,17 +125,19 @@ export function DocumentsScreen() {
   const personalErrors = validatePersonalData(personalData);
   const vehicleErrors = validateVehicleData(vehicleData);
 
-  const documentErrors = validateDocuments(data, vehicleData.vehicleYear);
+  const documentErrors = validateDocuments(data, firstRegistrationDate);
 
   const isPersonalValid = !Object.values(personalErrors).some(Boolean);
+
   const isVehicleValid = !Object.values(vehicleErrors).some(Boolean);
+
   const isDocumentsValid = !Object.values(documentErrors).some(Boolean);
 
   const canSubmit =
     isPersonalValid && isVehicleValid && isDocumentsValid && !isSubmitting;
 
   const handleSubmit = () => {
-    const validationErrors = validateDocuments(data, vehicleData.vehicleYear);
+    const validationErrors = validateDocuments(data, firstRegistrationDate);
 
     setErrors(getDocumentErrors(validationErrors));
 
@@ -146,7 +150,10 @@ export function DocumentsScreen() {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{
+        flex: 1,
+        backgroundColor: colors.background,
+      }}
       contentContainerStyle={{
         padding: 20,
         paddingBottom: 40,
@@ -266,13 +273,15 @@ export function DocumentsScreen() {
           {technicalReviewRequired === true
             ? 'Tu vehículo requiere una revisión técnico-mecánica vigente.'
             : technicalReviewRequired === false
-              ? 'Tu vehículo todavía no requiere revisión técnico-mecánica según el año del modelo.'
-              : 'Completa primero el año del vehículo para determinar si requiere revisión técnico-mecánica.'}
+              ? 'Tu vehículo todavía no requiere revisión técnico-mecánica según la fecha de primera matrícula registrada.'
+              : 'Completa una fecha de primera matrícula válida para determinar si requiere revisión técnico-mecánica.'}
         </Text>
 
         <View
           pointerEvents={technicalReviewRequired === true ? 'auto' : 'none'}
-          style={{ opacity: technicalReviewRequired === true ? 1 : 0.5 }}
+          style={{
+            opacity: technicalReviewRequired === true ? 1 : 0.5,
+          }}
         >
           <ExpirationDateInput
             label={
@@ -289,7 +298,9 @@ export function DocumentsScreen() {
 
         <View
           pointerEvents={technicalReviewRequired === true ? 'auto' : 'none'}
-          style={{ opacity: technicalReviewRequired === true ? 1 : 0.5 }}
+          style={{
+            opacity: technicalReviewRequired === true ? 1 : 0.5,
+          }}
         >
           <ImageInput
             label={

@@ -1,25 +1,58 @@
+const PRIVATE_VEHICLE_REVIEW_YEARS = 5;
+const PUBLIC_VEHICLE_REVIEW_YEARS = 2;
+const MINIMUM_VEHICLE_YEAR = 1886;
+
 const isEmpty = (value) =>
   value === null || value === undefined || String(value).trim() === '';
 
 const isValidDate = (value) =>
   value instanceof Date && !Number.isNaN(value.getTime());
 
-const isFutureDate = (value) => {
-  if (!isValidDate(value)) return false;
+const normalizeDate = (value) => {
+  if (isValidDate(value)) {
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+  }
 
+  if (typeof value === 'string') {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+
+    if (!match) return null;
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
+  return null;
+};
+
+const getToday = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  return today;
+};
 
-  const date = new Date(value);
-  date.setHours(0, 0, 0, 0);
-
-  return date > today;
+const isFutureDate = (value) => {
+  const date = normalizeDate(value);
+  return date !== null && date > getToday();
 };
 
 const isAdult = (birthDate) => {
   if (!isValidDate(birthDate)) return false;
 
-  const today = new Date();
+  const today = getToday();
 
   if (birthDate > today) return false;
 
@@ -35,22 +68,76 @@ const isAdult = (birthDate) => {
   return age >= 18;
 };
 
-const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+const isValidEmail = (value) =>
+  typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
-export const requiresTechnicalReview = (vehicleYear) => {
-  const currentYear = new Date().getFullYear();
-  const year = Number(vehicleYear);
+export function validateVehicleYear(vehicleYear, currentDate = new Date()) {
+  const yearText = String(vehicleYear ?? '').trim();
+  const currentYear = currentDate.getFullYear();
+  const maximumYear = currentYear + 1;
 
-  if (
-    !/^\d{4}$/.test(String(vehicleYear ?? '')) ||
-    !Number.isInteger(year) ||
-    year > currentYear
-  ) {
+  if (!/^\d{4}$/.test(yearText)) {
+    return 'Selecciona un año modelo válido de cuatro dígitos.';
+  }
+
+  const year = Number(yearText);
+
+  if (year < MINIMUM_VEHICLE_YEAR) {
+    return 'Selecciona un año modelo válido.';
+  }
+
+  if (year > maximumYear) {
+    return `El año modelo no puede superar ${maximumYear}.`;
+  }
+
+  return null;
+}
+
+export function validateFirstRegistrationDate(value) {
+  if (isEmpty(value)) {
+    return 'La fecha de primera matrícula es obligatoria.';
+  }
+
+  const date = normalizeDate(value);
+
+  if (!date) {
+    return 'Selecciona una fecha de matrícula válida.';
+  }
+
+  if (date > getToday()) {
+    return 'La fecha de matrícula no puede ser futura.';
+  }
+
+  return null;
+}
+
+export function requiresTechnicalReview(
+  firstRegistrationDate,
+  serviceType = 'private',
+) {
+  if (validateFirstRegistrationDate(firstRegistrationDate)) {
     return null;
   }
 
-  return currentYear - year >= 5;
-};
+  if (!['private', 'public'].includes(serviceType)) {
+    return null;
+  }
+
+  const registrationDate = normalizeDate(firstRegistrationDate);
+
+  const reviewYears =
+    serviceType === 'public'
+      ? PUBLIC_VEHICLE_REVIEW_YEARS
+      : PRIVATE_VEHICLE_REVIEW_YEARS;
+
+  const firstReviewDate = new Date(
+    registrationDate.getFullYear() + reviewYears,
+    registrationDate.getMonth(),
+    registrationDate.getDate(),
+  );
+
+  return getToday() >= firstReviewDate;
+}
 
 export function validatePersonalData(data) {
   const errors = {};
@@ -112,7 +199,6 @@ export function validatePersonalData(data) {
 
 export function validateVehicleData(data) {
   const errors = {};
-  const currentYear = new Date().getFullYear();
 
   if (isEmpty(data.vehiclePhoto)) {
     errors.vehiclePhoto = 'La fotografía del vehículo es obligatoria.';
@@ -124,7 +210,9 @@ export function validateVehicleData(data) {
 
   if (isEmpty(data.licensePlate)) {
     errors.licensePlate = 'La placa es obligatoria.';
-  } else if (!/^[A-Z]{3}\d{3}$/.test(data.licensePlate.trim())) {
+  } else if (
+    !/^[A-Z]{3}\d{3}$/.test(String(data.licensePlate).trim().toUpperCase())
+  ) {
     errors.licensePlate = 'La placa debe tener el formato ABC123.';
   }
 
@@ -140,16 +228,22 @@ export function validateVehicleData(data) {
     errors.model = 'El modelo no puede superar los 30 caracteres.';
   }
 
-  if (
-    !Number.isInteger(Number(data.vehicleYear)) ||
-    !/^\d{4}$/.test(String(data.vehicleYear ?? '')) ||
-    Number(data.vehicleYear) > currentYear
-  ) {
-    errors.vehicleYear = 'Selecciona un año válido, no futuro.';
-  }
-
   if (isEmpty(data.color)) {
     errors.color = 'Selecciona el color del vehículo.';
+  }
+
+  const yearError = validateVehicleYear(data.vehicleYear);
+
+  if (yearError) {
+    errors.vehicleYear = yearError;
+  }
+
+  const registrationError = validateFirstRegistrationDate(
+    data.firstRegistrationDate,
+  );
+
+  if (registrationError) {
+    errors.firstRegistrationDate = registrationError;
   }
 
   const capacity = Number(data.passengerCapacity);
@@ -169,7 +263,11 @@ export function validateVehicleData(data) {
   return errors;
 }
 
-export function validateDocuments(data, vehicleYear) {
+export function validateDocuments(
+  data,
+  firstRegistrationDate,
+  serviceType = 'private',
+) {
   const errors = {};
 
   if (isEmpty(data.licenseNumber)) {
@@ -196,10 +294,14 @@ export function validateDocuments(data, vehicleYear) {
     errors.soatPhoto = 'La fotografía del SOAT es obligatoria.';
   }
 
-  const technicalReviewRequired = requiresTechnicalReview(vehicleYear);
+  const technicalReviewRequired = requiresTechnicalReview(
+    firstRegistrationDate,
+    serviceType,
+  );
 
   if (technicalReviewRequired === null) {
-    errors.technicalExpiration = 'Verifica el año del vehículo.';
+    errors.technicalExpiration =
+      'Verifica la fecha de primera matrícula del vehículo.';
   } else if (technicalReviewRequired) {
     if (!isValidDate(data.technicalExpiration)) {
       errors.technicalExpiration = 'Selecciona la fecha de vencimiento.';
