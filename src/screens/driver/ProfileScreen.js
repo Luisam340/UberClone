@@ -13,6 +13,7 @@ import {
   Text,
   Pressable,
   Alert,
+  Image,
 } from 'react-native';
 import { signOut } from 'firebase/auth';
 
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [photoLoadFailed, setPhotoLoadFailed] = useState(false);
 
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
@@ -56,9 +58,7 @@ export default function ProfileScreen() {
         setError(null);
         setLoading(false);
       },
-      (profileError) => {
-        console.error('[ProfileScreen] Error loading driver:', profileError);
-
+      () => {
         setDriver(null);
         setError('No fue posible consultar el perfil.');
         setLoading(false);
@@ -89,9 +89,7 @@ export default function ProfileScreen() {
 
           try {
             await signOut(auth);
-          } catch (logoutError) {
-            console.error('[ProfileScreen] Logout error:', logoutError);
-
+          } catch {
             Alert.alert(
               'Error',
               'No fue posible cerrar sesión. Inténtalo nuevamente.',
@@ -111,6 +109,14 @@ export default function ProfileScreen() {
       .join(' ') ||
     user?.displayName ||
     'Conductor';
+
+  // Mostrar la foto registrada o las iniciales si no carga.
+  const profilePhotoUrl = driver?.personal?.profilePhotoUrl;
+  const showProfilePhoto = Boolean(profilePhotoUrl) && !photoLoadFailed;
+
+  useEffect(() => {
+    setPhotoLoadFailed(false);
+  }, [profilePhotoUrl]);
 
   const initials = fullName
     .trim()
@@ -145,7 +151,17 @@ export default function ProfileScreen() {
       >
         <View style={styles.profileHero}>
           <View style={styles.profileAvatar}>
-            <Text style={styles.profileAvatarText}>{initials}</Text>
+            {showProfilePhoto ? (
+              <Image
+                source={{ uri: profilePhotoUrl }}
+                style={styles.profileAvatarImage}
+                resizeMode="cover"
+                onError={() => setPhotoLoadFailed(true)}
+                accessibilityLabel={`Foto de perfil de ${fullName}`}
+              />
+            ) : (
+              <Text style={styles.profileAvatarText}>{initials}</Text>
+            )}
           </View>
 
           <Text style={styles.profileName}>{fullName}</Text>

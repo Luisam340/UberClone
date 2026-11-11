@@ -1,6 +1,5 @@
 import { Check } from 'lucide-react-native';
 import { Text, TouchableOpacity, View } from 'react-native';
-
 import { colors } from '../themes/colors';
 
 export function Checkbox({ label, value = false, onChange }) {

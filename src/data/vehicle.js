@@ -67,7 +67,7 @@ export const getVehicleErrors = (validationErrors) => ({
 });
 
 export const UPDATE_INTERVAL = 50;
-export const VEHICLE_SPEED = 8;
+export const VEHICLE_SPEED = 19.89;
 export const MIN_TURN_SPEED = 2.5;
 export const TURN_SPEED = 180;
 export const ACCELERATION = 3;

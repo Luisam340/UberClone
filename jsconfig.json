@@ -1,18 +1,28 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "allowJs": true,
     "checkJs": true,
-    "noImplicitAny": false,
+    "noEmit": true,
     "jsx": "react-jsx",
-    "skipLibCheck": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "customConditions": ["react-native"]
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "App.js",
+    "index.js"
+  ],
   "exclude": [
     "node_modules",
-    "android",
+    ".expo",
+    "dist",
+    "build",
     "ios",
-    ".expo"
+    "android"
   ]
 }

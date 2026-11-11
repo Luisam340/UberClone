@@ -1,0 +1,3 @@
+export const REQUEST_DURATION_SECONDS = 15;
+export const MIN_REQUEST_DELAY_MS = 5000;
+export const MAX_REQUEST_DELAY_MS = 10000;

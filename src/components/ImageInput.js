@@ -91,8 +91,6 @@ export function ImageInput({ label, value, onChange, disabled = false }) {
         onChange(imageUri);
       }
     } catch (error) {
-      console.error('[IMAGE] Selection failed:', error);
-
       Alert.alert('Error', 'No fue posible seleccionar la imagen.');
     } finally {
       setLoading(false);

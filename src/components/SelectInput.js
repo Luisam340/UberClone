@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Modal, Platform, Text, TouchableOpacity, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-
 import { styles } from '../styles/app.styles';
 import { colors } from '../themes/colors';
 
@@ -14,9 +13,7 @@ export function SelectInput({
 }) {
   const [visible, setVisible] = useState(false);
   const [temporaryValue, setTemporaryValue] = useState(value ?? '');
-
   const selectedOption = options.find((option) => option.value === value);
-
   const openPicker = () => {
     setTemporaryValue(value ?? '');
     setVisible(true);

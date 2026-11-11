@@ -1,5 +1,4 @@
 import { View, Pressable, Text } from 'react-native';
-
 import { styles } from '../styles/app.styles';
 import { colors } from '../themes/colors';
 import { iconsTabs } from '../data/icons';
@@ -34,3 +33,4 @@ export function BottomTabs({ active, onNavigate }) {
     </View>
   );
 }
+˝

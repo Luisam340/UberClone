@@ -31,12 +31,18 @@ export function Map({
   moving = false,
   children,
   onLocationChange,
+  navigationTarget = null,
+  navigationId = null,
+  onNavigationComplete,
+  onNavigationError,
 }) {
   const mapRef = useRef(null);
   const positionRef = useRef(null);
   const headingRef = useRef(0);
   const speedRef = useRef(VEHICLE_SPEED);
   const callbackRef = useRef(onLocationChange);
+  const completionRef = useRef(onNavigationComplete);
+  const errorRef = useRef(onNavigationError);
   const initializedRef = useRef(false);
 
   const [initialLocation] = useState(() => origin || getRandomLocation());
@@ -58,155 +64,201 @@ export function Map({
 
   const vehicleSource = getVehicleImage('red');
 
+  // Mantener las funciones actualizadas sin reiniciar el movimiento.
   useEffect(() => {
     callbackRef.current = onLocationChange;
-  }, [onLocationChange]);
+    completionRef.current = onNavigationComplete;
+    errorRef.current = onNavigationError;
+  }, [onLocationChange, onNavigationComplete, onNavigationError]);
 
+  const targetLatitude = navigationTarget?.latitude;
+  const targetLongitude = navigationTarget?.longitude;
+
+  // Reutilizar la animacion tanto para recorridos aleatorios
+  // como para llevar al conductor hacia el pasajero.
   useEffect(() => {
-    if (!moving) return;
+    const hasNavigationTarget =
+      Number.isFinite(targetLatitude) && Number.isFinite(targetLongitude);
+
+    if (!moving && !hasNavigationTarget) {
+      speedRef.current = 0;
+      return;
+    }
 
     let cancelled = false;
     let interval = null;
     let finishAnimation = null;
     let frameCount = 0;
 
-    const startSimulation = async () => {
-      while (!cancelled) {
-        let coordinates;
+    const animateRoute = async (coordinates) => {
+      if (!Array.isArray(coordinates) || coordinates.length < 2) {
+        throw new Error('La ruta no contiene suficientes puntos.');
+      }
 
-        try {
-          coordinates = await getDrivingRoute(
-            positionRef.current,
-            getRandomLocation(),
+      const drivingRoute = buildRoute(coordinates);
+
+      if (drivingRoute.points.length < 2 || drivingRoute.totalDistance <= 0) {
+        throw new Error('La ruta del vehículo no es válida.');
+      }
+
+      // Reiniciar la linea de recorrido para la nueva ruta.
+      setTracking((previous) => ({
+        ...previous,
+        path: [positionRef.current],
+      }));
+
+      if (!initializedRef.current) {
+        const initialHeading = getSmoothedHeading(drivingRoute, 0);
+
+        if (initialHeading !== null) {
+          headingRef.current = initialHeading;
+        }
+
+        initializedRef.current = true;
+      }
+
+      let traveledDistance = 0;
+      let lastUpdate = Date.now();
+
+      await new Promise((resolve) => {
+        let finished = false;
+
+        const finish = () => {
+          if (finished) {
+            return;
+          }
+
+          finished = true;
+
+          if (interval !== null) {
+            clearInterval(interval);
+            interval = null;
+          }
+
+          finishAnimation = null;
+          resolve();
+        };
+
+        finishAnimation = finish;
+
+        interval = setInterval(() => {
+          if (cancelled) {
+            finish();
+            return;
+          }
+
+          const currentTime = Date.now();
+
+          const elapsed = Math.min(
+            Math.max((currentTime - lastUpdate) / 1000, 0),
+            0.2,
           );
-        } catch (error) {
-          if (!cancelled) {
-            console.error('[Map] Routing error:', error);
+
+          lastUpdate = currentTime;
+
+          const targetSpeed = getTargetSpeed(drivingRoute, traveledDistance);
+
+          speedRef.current = approachValue(
+            speedRef.current,
+            targetSpeed,
+            ACCELERATION * elapsed,
+          );
+
+          traveledDistance = Math.min(
+            drivingRoute.totalDistance,
+            traveledDistance + speedRef.current * elapsed,
+          );
+
+          const nextPosition = getPositionAtDistance(
+            drivingRoute,
+            traveledDistance,
+          );
+
+          const targetHeading = getSmoothedHeading(
+            drivingRoute,
+            traveledDistance,
+          );
+
+          if (targetHeading !== null) {
+            headingRef.current = rotateTowards(
+              headingRef.current,
+              targetHeading,
+              TURN_SPEED * elapsed,
+            );
           }
 
-          return;
-        }
+          positionRef.current = nextPosition;
+          frameCount += 1;
 
-        if (cancelled) return;
+          const reachedDestination =
+            traveledDistance >= drivingRoute.totalDistance;
 
-        if (!coordinates || coordinates.length < 2) {
-          console.warn('[Map] Invalid route');
-          return;
-        }
-
-        const drivingRoute = buildRoute(coordinates);
-
-        if (drivingRoute.points.length < 2 || drivingRoute.totalDistance <= 0) {
-          return;
-        }
-
-        if (!initializedRef.current) {
-          const initialHeading = getSmoothedHeading(drivingRoute, 0);
-
-          if (initialHeading !== null) {
-            headingRef.current = initialHeading;
-          }
-
-          initializedRef.current = true;
+          const shouldUpdatePath =
+            frameCount % PATH_UPDATE_FRAMES === 0 || reachedDestination;
 
           setTracking((previous) => ({
-            ...previous,
+            position: nextPosition,
             heading: headingRef.current,
+            path: shouldUpdatePath
+              ? [...previous.path.slice(-199), nextPosition]
+              : previous.path,
           }));
+
+          if (shouldUpdatePath) {
+            callbackRef.current?.(nextPosition);
+          }
+
+          if (reachedDestination) {
+            speedRef.current = 0;
+            finish();
+          }
+        }, UPDATE_INTERVAL);
+      });
+    };
+
+    const startSimulation = async () => {
+      while (!cancelled) {
+        const isNavigation = hasNavigationTarget;
+
+        const destination = isNavigation
+          ? {
+              latitude: targetLatitude,
+              longitude: targetLongitude,
+            }
+          : getRandomLocation();
+
+        try {
+          // Calcular desde la posicion real del carro en ese instante.
+          const coordinates = await getDrivingRoute(
+            positionRef.current,
+            destination,
+          );
+
+          if (cancelled) {
+            return;
+          }
+
+          await animateRoute(coordinates);
+
+          if (cancelled) {
+            return;
+          }
+
+          if (isNavigation) {
+            completionRef.current?.(navigationId);
+            return;
+          }
+        } catch (error) {
+          if (cancelled) {
+            return;
+          }
+
+          if (isNavigation) {
+            errorRef.current?.(error);
+          }
+
+          return;
         }
-
-        let traveledDistance = 0;
-        let lastUpdate = Date.now();
-
-        await new Promise((resolve) => {
-          let finished = false;
-
-          const finish = () => {
-            if (finished) return;
-
-            finished = true;
-
-            if (interval !== null) {
-              clearInterval(interval);
-              interval = null;
-            }
-
-            finishAnimation = null;
-            resolve();
-          };
-
-          finishAnimation = finish;
-
-          interval = setInterval(() => {
-            if (cancelled) {
-              finish();
-              return;
-            }
-
-            const now = Date.now();
-
-            const elapsed = Math.min(
-              Math.max((now - lastUpdate) / 1000, 0),
-              0.2,
-            );
-
-            lastUpdate = now;
-
-            const targetSpeed = getTargetSpeed(drivingRoute, traveledDistance);
-
-            speedRef.current = approachValue(
-              speedRef.current,
-              targetSpeed,
-              ACCELERATION * elapsed,
-            );
-
-            traveledDistance = Math.min(
-              drivingRoute.totalDistance,
-              traveledDistance + speedRef.current * elapsed,
-            );
-
-            const nextPosition = getPositionAtDistance(
-              drivingRoute,
-              traveledDistance,
-            );
-
-            const targetHeading = getSmoothedHeading(
-              drivingRoute,
-              traveledDistance,
-            );
-
-            if (targetHeading !== null) {
-              headingRef.current = rotateTowards(
-                headingRef.current,
-                targetHeading,
-                TURN_SPEED * elapsed,
-              );
-            }
-
-            positionRef.current = nextPosition;
-            frameCount++;
-
-            const shouldUpdatePath =
-              frameCount % PATH_UPDATE_FRAMES === 0 ||
-              traveledDistance >= drivingRoute.totalDistance;
-
-            setTracking((previous) => ({
-              position: nextPosition,
-              heading: headingRef.current,
-              path: shouldUpdatePath
-                ? [...previous.path.slice(-199), nextPosition]
-                : previous.path,
-            }));
-
-            if (shouldUpdatePath) {
-              callbackRef.current?.(nextPosition);
-            }
-
-            if (traveledDistance >= drivingRoute.totalDistance) {
-              finish();
-            }
-          }, UPDATE_INTERVAL);
-        });
       }
     };
 
@@ -223,12 +275,14 @@ export function Map({
         clearInterval(interval);
       }
     };
-  }, [moving]);
+  }, [moving, targetLatitude, targetLongitude, navigationId]);
 
   const centerOnDriver = () => {
     const position = positionRef.current;
 
-    if (!position) return;
+    if (!position) {
+      return;
+    }
 
     mapRef.current?.animateToRegion(
       {
@@ -241,6 +295,9 @@ export function Map({
   };
 
   const vehicleRotation = (tracking.heading - IMAGE_HEADING_OFFSET + 360) % 360;
+
+  const hasNavigationTarget =
+    Number.isFinite(targetLatitude) && Number.isFinite(targetLongitude);
 
   return (
     <View style={styles.map}>
@@ -263,28 +320,32 @@ export function Map({
           anchor={{ x: 0.5, y: 0.5 }}
           tracksViewChanges={true}
         >
-          <View
-            collapsable={false}
-            style={{
-              width: VEHICLE_ICON_SIZE,
-              height: VEHICLE_ICON_SIZE,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+          <View collapsable={false} style={styles.vehicleMarkerContainer}>
             <Image
               source={vehicleSource}
               resizeMode="contain"
-              style={{
-                width: VEHICLE_ICON_SIZE,
-                height: VEHICLE_ICON_SIZE,
-                transform: [{ rotate: `${vehicleRotation}deg` }],
-              }}
+              style={[
+                styles.vehicleMarkerImage,
+                {
+                  transform: [{ rotate: `${vehicleRotation}deg` }],
+                },
+              ]}
             />
           </View>
         </Marker>
 
-        {route && tracking.path.length > 1 && (
+        {hasNavigationTarget && (
+          <Marker
+            coordinate={{
+              latitude: targetLatitude,
+              longitude: targetLongitude,
+            }}
+            pinColor={colors.primary}
+            title="Destino actual"
+          />
+        )}
+
+        {(route || hasNavigationTarget) && tracking.path.length > 1 && (
           <Polyline
             coordinates={tracking.path}
             strokeColor={colors.primary}
@@ -299,19 +360,7 @@ export function Map({
         onPress={centerOnDriver}
         accessibilityRole="button"
         accessibilityLabel="Centrar mapa en el conductor"
-        style={{
-          position: 'absolute',
-          right: 16,
-          bottom: 100,
-          width: 48,
-          height: 48,
-          borderRadius: 24,
-          backgroundColor: '#FFFFFF',
-          alignItems: 'center',
-          justifyContent: 'center',
-          elevation: 4,
-          zIndex: 10,
-        }}
+        style={styles.mapCenterButton}
       >
         <LocateFixed size={24} color={colors.primary} />
       </Pressable>
