@@ -176,15 +176,7 @@ export function TripRequestAlerts({
       <View style={styles.tripAlertsHeader}>
         <Text style={styles.tripAlertsTitle}>
           Solicitudes cercanas ({requests.length})
-        </Text>
-        <Pressable
-          onPress={onGoOffline}
-          accessibilityRole="button"
-          accessibilityLabel="Desactivar disponibilidad y cancelar solicitudes"
-          style={styles.tripAlertCompactReject}
-        >
-          <Text style={styles.tripAlertCompactRejectText}>Desactivar disponibilidad</Text>
-        </Pressable>
+        </Text> 
       </View>
 
       <ScrollView

@@ -41,7 +41,7 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
   ref,
 ) {
   // Compacto, detalles del recorrido y resumen final con acciones de cobro.
-  const snapPoints = useMemo(() => ['15.5%', '48%', '95%'], []);
+  const snapPoints = useMemo(() => ['21%', '51%', '93%'], []);
   const statusTitle = getDriverStatusTitle({
     loadingApproval,
     accountValidated,

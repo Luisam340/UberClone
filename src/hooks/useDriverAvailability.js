@@ -8,6 +8,10 @@ import {
 import { db } from '../config/firebaseConfig';
 import { vehicleCategories } from '../data/vehicle';
 
+// Temporal: evita escrituras frecuentes de ubicacion en Firestore.
+// El mapa y la posicion simulada del conductor siguen funcionando localmente.
+const PERSIST_DRIVER_LOCATION = false;
+
 export function useDriverAvailability(userId, origin) {
   const [available, setAvailable] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -94,7 +98,7 @@ export function useDriverAvailability(userId, origin) {
         longitude: position.longitude,
       };
 
-      if (!userId || !availableRef.current || writeInProgress.current) {
+      if (!PERSIST_DRIVER_LOCATION || !userId || !availableRef.current || writeInProgress.current) {
         return;
       }
 
