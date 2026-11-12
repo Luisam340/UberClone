@@ -1,4 +1,4 @@
-import { Text, Pressable, View } from 'react-native';
+import {Text, Pressable, View } from 'react-native';
 import { CircleDot, MapPin, UserRound } from 'lucide-react-native';
 import { styles } from '../styles/app.styles';
 import { colors } from '../themes/colors';
@@ -17,6 +17,7 @@ export function ActiveTripDetails({
   onStartTrip,
   onFinishTrip,
   onPayCash,
+  cashPaymentLoading = false,
   onOpenMercadoPago,
   onCheckMercadoPago,
   paymentLoading = false,
@@ -37,6 +38,18 @@ export function ActiveTripDetails({
     tip: trip.tip ?? 0,
   });
   const isMercadoPago = trip.paymentMethod === 'mercadopago';
+  const paymentStatusLabel = !isMercadoPago
+    ? 'Efectivo'
+    : paymentResult?.accredited || paymentResult?.status === 'approved'
+      ? 'Aprobado'
+      : ['rejected', 'failed', 'cancelled', 'canceled'].includes(paymentResult?.status)
+        ? 'Rechazado'
+        : 'Pendiente';
+  const mercadoPagoStatusMessage = paymentResult?.accredited
+    ? 'Pago aprobado. Esperando la actualización del viaje.'
+    : paymentResult?.status === 'rejected'
+      ? 'Pago rechazado. No se ha acreditado el cobro.'
+      : 'Pago pendiente de confirmación de Mercado Pago.';
 
   return (
     <View
@@ -277,30 +290,21 @@ export function ActiveTripDetails({
             Método de pago: {isMercadoPago ? 'Mercado Pago' : 'Efectivo'}
           </Text>
           <Text style={styles.muted}>
-            Estado:{' '}
-            {status === TRIP_STATUS.PAID
-              ? isMercadoPago
-                ? 'Pago digital acreditado'
-                : 'Efectivo recibido'
-              : 'Pendiente de pago'}
+            Estado del pago: {paymentStatusLabel}
           </Text>
           {status === TRIP_STATUS.COMPLETED ? (
             isMercadoPago ? (
               <View style={styles.tripNavigationMessage}>
                 <Text style={styles.muted}>
-                  {paymentResult?.accredited
-                    ? 'Mercado Pago confirmó la acreditación. Pendiente de sincronizar el viaje en Firestore.'
-                    : 'Pendiente de confirmación de Mercado Pago.'}
+                  {mercadoPagoStatusMessage}
                 </Text>
                 {paymentError ? (
-                  <Text style={styles.tripRequestErrorText}>
-                    {paymentError}
-                  </Text>
+                  <Text style={styles.tripRequestErrorText}>{paymentError}</Text>
                 ) : null}
                 <Pressable
                   style={styles.tripRequestSimulateButton}
                   onPress={onOpenMercadoPago}
-                  disabled={paymentLoading || paymentResult?.accredited}
+                  disabled={paymentLoading || paymentResult?.accredited || typeof onOpenMercadoPago !== 'function'}
                   accessibilityRole="button"
                   accessibilityLabel="Abrir Mercado Pago para pagar el viaje"
                 >
@@ -311,7 +315,7 @@ export function ActiveTripDetails({
                 <Pressable
                   style={styles.tripRequestSimulateButton}
                   onPress={onCheckMercadoPago}
-                  disabled={paymentLoading}
+                  disabled={paymentLoading || typeof onCheckMercadoPago !== 'function'}
                   accessibilityRole="button"
                   accessibilityLabel="Consultar estado del pago"
                 >
@@ -324,10 +328,10 @@ export function ActiveTripDetails({
               <Pressable
                 style={styles.tripRequestSimulateButton}
                 onPress={onPayCash}
-                disabled={typeof onPayCash !== 'function'}
+                disabled={cashPaymentLoading || typeof onPayCash !== 'function'}
               >
                 <Text style={styles.tripRequestSimulateButtonText}>
-                  Confirmar efectivo recibido
+                  {cashPaymentLoading ? 'Confirmando efectivo…' : 'Confirmar efectivo recibido'}
                 </Text>
               </Pressable>
             )

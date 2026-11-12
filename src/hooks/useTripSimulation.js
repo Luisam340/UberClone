@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FIRESTORE_TRIP_STATUS, updateTripStatus } from '../services/trips';
+import {
+  FIRESTORE_TRIP_STATUS,
+  updateTripStatus,
+  confirmCashTripPayment,
+} from '../services/trips';
 import { TRIP_STATUS, useTripLifecycle } from './useTripLifecycle';
 import { useTripRequests } from './useTripRequests';
 import { useTripRequestHandlers } from './useTripRequestHandlers';
@@ -14,6 +18,7 @@ export function useTripSimulation({
   requestDuration,
 } = {}) {
   const [lastRequestResult, setLastRequestResult] = useState(null);
+  const [cashPaymentLoading, setCashPaymentLoading] = useState(false);
   const updatingRef = useRef(false);
   const {
     activeTrip,
@@ -106,6 +111,36 @@ export function useTripSimulation({
     }
   }, [driverId, activeTrip, tripPhase, completeActiveTrip, setError]);
 
+  // Confirmar manualmente que el conductor recibió el efectivo.
+  const payCash = useCallback(async () => {
+    if (
+      !driverId ||
+      !activeTrip ||
+      activeTrip.paymentMethod !== 'cash' ||
+      tripPhase !== TRIP_STATUS.COMPLETED ||
+      updatingRef.current
+    ) {
+      return false;
+    }
+    updatingRef.current = true;
+    setCashPaymentLoading(true);
+    setError(null);
+    try {
+      await confirmCashTripPayment(driverId, activeTrip.id);
+      // El guardado ya está confirmado: liberar el viaje.
+      // El hook de navegación devolverá el panel al tamaño original.
+      resetActiveTrip();
+      setLastRequestResult(null);
+      return true;
+    } catch (paymentError) {
+      setError(paymentError.message ?? 'No se pudo confirmar el efectivo.');
+      return false;
+    } finally {
+      updatingRef.current = false;
+      setCashPaymentLoading(false);
+    }
+  }, [driverId, activeTrip, tripPhase, setError, resetActiveTrip]);
+
   // Limpiar un viaje finalizado sin borrar su historial.
   const resetTrip = useCallback(() => {
     if (tripPhase !== TRIP_STATUS.COMPLETED || updatingRef.current)
@@ -153,6 +188,8 @@ export function useTripSimulation({
     rejectTrip,
     startTrip,
     completeTrip,
+    payCash,
+    cashPaymentLoading,
     resetTrip,
   };
 }

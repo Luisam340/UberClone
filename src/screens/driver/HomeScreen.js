@@ -1,11 +1,9 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { Text, View } from 'react-native';
-import {
-  createTripPaymentOrder,
-  getTripPaymentStatus,
-  openTripPaymentCheckout,
-} from '../../services/mercadoPago';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../config/firebaseConfig';
+import { createTripPaymentOrder, getTripPaymentStatus, openTripPaymentCheckout } from '../../services/mercadoPago';
 import { Map } from '../../components/Map';
 import { DriverHomeSheet } from '../../components/DriverHomeSheet';
 import { TripRequestAlerts } from '../../components/TripRequestAlerts';
@@ -71,6 +69,8 @@ export default function HomeScreen() {
     rejectTrip,
     startTrip,
     completeTrip,
+    payCash,
+    cashPaymentLoading,
     resetTrip,
   } = useTripSimulation({
     driverId: user?.uid,
@@ -97,13 +97,8 @@ export default function HomeScreen() {
   // La creación de una orden se solicita al servicio seguro, nunca desde
   // la app directamente a Mercado Pago con un Access Token privado.
   const handleOpenMercadoPago = useCallback(async () => {
-    if (
-      !activeTrip?.id ||
-      activeTrip.paymentMethod !== 'mercadopago' ||
-      status !== TRIP_STATUS.COMPLETED ||
-      paymentBusyRef.current
-    )
-      return;
+    if (!activeTrip?.id || activeTrip.paymentMethod !== 'mercadopago' ||
+        status !== TRIP_STATUS.COMPLETED || paymentBusyRef.current) return;
 
     paymentBusyRef.current = true;
     setPaymentLoading(true);
@@ -126,13 +121,8 @@ export default function HomeScreen() {
   // La respuesta del navegador no acredita el pago.
   // Consultamos el estado real validado por el servicio.
   const handleCheckMercadoPago = useCallback(async () => {
-    if (
-      !activeTrip?.id ||
-      activeTrip.paymentMethod !== 'mercadopago' ||
-      status !== TRIP_STATUS.COMPLETED ||
-      paymentBusyRef.current
-    )
-      return;
+    if (!activeTrip?.id || activeTrip.paymentMethod !== 'mercadopago' ||
+        status !== TRIP_STATUS.COMPLETED || paymentBusyRef.current) return;
 
     paymentBusyRef.current = true;
     setPaymentLoading(true);
@@ -153,14 +143,41 @@ export default function HomeScreen() {
     setPaymentResult(null);
   }, [activeTrip?.id]);
 
+  // Cuando Firestore confirme el pago, liberar el viaje y plegar el panel.
+  // No basarse únicamente en el retorno de Checkout Pro ni en una consulta
+  // que todavía no haya sincronizado el estado del viaje.
+  useEffect(() => {
+    if (!activeTrip?.id || status !== TRIP_STATUS.COMPLETED) return;
+
+    const tripRef = doc(db, 'trips', String(activeTrip.id));
+    const unsubscribe = onSnapshot(
+      tripRef,
+      (snapshot) => {
+        const trip = snapshot.data();
+        if (
+          trip?.driverId === user?.uid &&
+          (trip.paymentStatus === 'approved' ||
+            (trip.paymentMethod === 'cash' && trip.paymentStatus === 'cash')) &&
+          trip.status === 'paid'
+        ) {
+          if (resetTrip()) {
+            sheetRef.current?.snapToIndex(0);
+          }
+        }
+      },
+      (error) => {
+        console.warn('No fue posible escuchar el estado del pago:', error.message);
+      },
+    );
+    return unsubscribe;
+  }, [activeTrip?.id, status, user?.uid, resetTrip]);
+
   // Evitar cambios de disponibilidad durante un viaje.
   const availabilityDisabled =
     loadingApproval ||
     !accountValidated ||
     !vehicleCategory ||
     isTripActive ||
-    isRequestPending ||
-    isGenerating ||
     status === TRIP_STATUS.COMPLETED;
 
   return (
@@ -207,6 +224,8 @@ export default function HomeScreen() {
         onRetryNavigation={navigation.retryNavigation}
         onStartTrip={navigation.handleStartTrip}
         onFinishTrip={navigation.handleFinishTrip}
+        onPayCash={payCash}
+        cashPaymentLoading={cashPaymentLoading}
         onOpenMercadoPago={handleOpenMercadoPago}
         onCheckMercadoPago={handleCheckMercadoPago}
         paymentLoading={paymentLoading}
@@ -220,6 +239,7 @@ export default function HomeScreen() {
           requests={pendingRequests}
           onAccept={acceptTrip}
           onReject={rejectTrip}
+          onGoOffline={stopAvailability}
         />
       )}
     </View>

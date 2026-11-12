@@ -64,6 +64,39 @@ export async function saveAcceptedTrip(driverId, trip) {
   return reference.id;
 }
 
+// Confirmación manual del efectivo, solo para el conductor de este viaje.
+// Esta operación no se utiliza para pagos digitales.
+export async function confirmCashTripPayment(driverId, tripId) {
+  if (!driverId || !tripId) {
+    throw new Error('No se pudo identificar el conductor o el viaje.');
+  }
+
+  const reference = doc(db, 'trips', String(tripId));
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(reference);
+    if (!snapshot.exists() || snapshot.data().driverId !== driverId) {
+      throw new Error('No se encontró un viaje del conductor.');
+    }
+
+    const trip = snapshot.data();
+    if (trip.status === FIRESTORE_TRIP_STATUS.PAID &&
+        trip.paymentMethod === 'cash' && trip.paymentStatus === 'cash') {
+      return;
+    }
+    if (trip.status !== FIRESTORE_TRIP_STATUS.COMPLETED ||
+        trip.paymentMethod !== 'cash' || trip.paymentStatus !== 'pending') {
+      throw new Error('Este viaje no admite confirmación de efectivo.');
+    }
+
+    transaction.update(reference, {
+      status: FIRESTORE_TRIP_STATUS.PAID,
+      paymentStatus: 'cash',
+      paidAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+}
+
 const ALLOWED_TRANSITIONS = {
   accepted: ['driver_arriving', 'cancelled'],
   driver_arriving: ['in_progress', 'cancelled'],

@@ -161,7 +161,12 @@ function TripAlertCard({ request, onAccept, onReject }) {
   );
 }
 
-export function TripRequestAlerts({ requests = [], onAccept, onReject }) {
+export function TripRequestAlerts({
+  requests = [],
+  onAccept,
+  onReject,
+  onGoOffline,
+}) {
   if (requests.length === 0) {
     return null;
   }
@@ -172,6 +177,14 @@ export function TripRequestAlerts({ requests = [], onAccept, onReject }) {
         <Text style={styles.tripAlertsTitle}>
           Solicitudes cercanas ({requests.length})
         </Text>
+        <Pressable
+          onPress={onGoOffline}
+          accessibilityRole="button"
+          accessibilityLabel="Desactivar disponibilidad y cancelar solicitudes"
+          style={styles.tripAlertCompactReject}
+        >
+          <Text style={styles.tripAlertCompactRejectText}>Desactivar disponibilidad</Text>
+        </Pressable>
       </View>
 
       <ScrollView

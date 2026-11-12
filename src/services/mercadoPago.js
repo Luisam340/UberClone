@@ -1,9 +1,12 @@
 import { Linking } from 'react-native';
 import { auth } from '../config/firebaseConfig';
-import { PAYMENTS_API_URL } from '../data/simulatedTrips';
+
+// URL HTTPS pública del túnel local hacia el servidor Node.js en tu Mac.
+// El Access Token solo se lee en mercadoPagoApi.js (Node), nunca en Expo.
+const PAYMENTS_API_URL = process.env.EXPO_PUBLIC_PAYMENTS_API_URL;
 
 function getPaymentsApiUrl() {
-  if (!PAYMENTS_API_URL) {
+  if (!PAYMENTS_API_URL || !/^https:\/\//i.test(PAYMENTS_API_URL)) {
     throw new Error(
       'Configura EXPO_PUBLIC_PAYMENTS_API_URL con una URL HTTPS válida.',
     );

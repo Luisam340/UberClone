@@ -30,6 +30,7 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
     onStartTrip,
     onFinishTrip,
     onPayCash,
+    cashPaymentLoading,
     onOpenMercadoPago,
     onCheckMercadoPago,
     paymentLoading,
@@ -147,6 +148,7 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
             onStartTrip={onStartTrip}
             onFinishTrip={onFinishTrip}
             onPayCash={onPayCash}
+            cashPaymentLoading={cashPaymentLoading}
             onOpenMercadoPago={onOpenMercadoPago}
             onCheckMercadoPago={onCheckMercadoPago}
             paymentLoading={paymentLoading}
