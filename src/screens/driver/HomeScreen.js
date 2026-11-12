@@ -1,6 +1,11 @@
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import { Text, View } from 'react-native';
+import {
+  createTripPaymentOrder,
+  getTripPaymentStatus,
+  openTripPaymentCheckout,
+} from '../../services/mercadoPago';
 import { Map } from '../../components/Map';
 import { DriverHomeSheet } from '../../components/DriverHomeSheet';
 import { TripRequestAlerts } from '../../components/TripRequestAlerts';
@@ -19,6 +24,10 @@ export default function HomeScreen() {
   const [origin] = useState(getRandomLocation);
   const sheetRef = useRef(null);
   const isFocused = useIsFocused();
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+  const [paymentResult, setPaymentResult] = useState(null);
+  const paymentBusyRef = useRef(false);
 
   const {
     available,
@@ -85,6 +94,65 @@ export default function HomeScreen() {
     sheetRef,
   });
 
+  // La creación de una orden se solicita al servicio seguro, nunca desde
+  // la app directamente a Mercado Pago con un Access Token privado.
+  const handleOpenMercadoPago = useCallback(async () => {
+    if (
+      !activeTrip?.id ||
+      activeTrip.paymentMethod !== 'mercadopago' ||
+      status !== TRIP_STATUS.COMPLETED ||
+      paymentBusyRef.current
+    )
+      return;
+
+    paymentBusyRef.current = true;
+    setPaymentLoading(true);
+    setPaymentError(null);
+    try {
+      const order = await createTripPaymentOrder(String(activeTrip.id));
+      if (!order?.checkoutUrl) {
+        throw new Error('No recibimos el enlace de pago de Mercado Pago.');
+      }
+      setPaymentResult(null);
+      await openTripPaymentCheckout(order.checkoutUrl);
+    } catch (error) {
+      setPaymentError(error.message ?? 'No fue posible abrir Mercado Pago.');
+    } finally {
+      paymentBusyRef.current = false;
+      setPaymentLoading(false);
+    }
+  }, [activeTrip, status]);
+
+  // La respuesta del navegador no acredita el pago.
+  // Consultamos el estado real validado por el servicio.
+  const handleCheckMercadoPago = useCallback(async () => {
+    if (
+      !activeTrip?.id ||
+      activeTrip.paymentMethod !== 'mercadopago' ||
+      status !== TRIP_STATUS.COMPLETED ||
+      paymentBusyRef.current
+    )
+      return;
+
+    paymentBusyRef.current = true;
+    setPaymentLoading(true);
+    setPaymentError(null);
+    try {
+      const result = await getTripPaymentStatus(String(activeTrip.id));
+      setPaymentResult(result);
+    } catch (error) {
+      setPaymentError(error.message ?? 'No fue posible consultar el pago.');
+    } finally {
+      paymentBusyRef.current = false;
+      setPaymentLoading(false);
+    }
+  }, [activeTrip, status]);
+
+  useEffect(() => {
+    setPaymentError(null);
+    setPaymentResult(null);
+  }, [activeTrip?.id]);
+
   // Evitar cambios de disponibilidad durante un viaje.
   const availabilityDisabled =
     loadingApproval ||
@@ -139,6 +207,11 @@ export default function HomeScreen() {
         onRetryNavigation={navigation.retryNavigation}
         onStartTrip={navigation.handleStartTrip}
         onFinishTrip={navigation.handleFinishTrip}
+        onOpenMercadoPago={handleOpenMercadoPago}
+        onCheckMercadoPago={handleCheckMercadoPago}
+        paymentLoading={paymentLoading}
+        paymentError={paymentError}
+        paymentResult={paymentResult}
         onResetTrip={navigation.handleResetTrip}
       />
 

@@ -10,29 +10,37 @@ import {
 } from '../utils/driverStatus';
 import { ActiveTripDetails } from './ActiveTripDetails';
 
-export const DriverHomeSheet = forwardRef(function DriverHomeSheet({
-  available,
-  seconds,
-  accountValidated,
-  vehicleCategory,
-  loadingApproval,
-  status,
-  activeTrip,
-  pendingRequests,
-  tripError,
-  availabilityDisabled,
-  onToggle,
-  pickupArrived,
-  destinationArrived,
-  navigationError,
-  onRetryNavigation,
-  onStartTrip,
-  onFinishTrip,
-  onPayCash,
-  onResetTrip,
-}, ref) {
-  const snapPoints = useMemo(() => ['18%', '48%', '82%'], []);
-
+export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
+  {
+    available,
+    seconds,
+    accountValidated,
+    vehicleCategory,
+    loadingApproval,
+    status,
+    activeTrip,
+    pendingRequests,
+    tripError,
+    availabilityDisabled,
+    onToggle,
+    pickupArrived,
+    destinationArrived,
+    navigationError,
+    onRetryNavigation,
+    onStartTrip,
+    onFinishTrip,
+    onPayCash,
+    onOpenMercadoPago,
+    onCheckMercadoPago,
+    paymentLoading,
+    paymentError,
+    paymentResult,
+    onResetTrip,
+  },
+  ref,
+) {
+  // Compacto, detalles del recorrido y resumen final con acciones de cobro.
+  const snapPoints = useMemo(() => ['15.5%', '48%', '95%'], []);
   const statusTitle = getDriverStatusTitle({
     loadingApproval,
     accountValidated,
@@ -66,13 +74,26 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet({
       >
         <BottomSheetScrollView
           style={styles.tripRequestHomeScroll}
-          contentContainerStyle={styles.sheetContent}
+          contentContainerStyle={[
+            styles.sheetContent,
+            activeTrip && styles.tripActiveSheetContent,
+          ]}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.row}>
             <View style={styles.tripRequestHomeStatusContent}>
-              <Text style={styles.sectionTitle}>{statusTitle}</Text>
-              <Text style={styles.muted}>{statusDescription}</Text>
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  styles.tripHomeHeading,
+                  activeTrip && styles.tripActiveHeading,
+                ]}
+              >
+                {statusTitle}
+              </Text>
+              {!activeTrip && (
+                <Text style={styles.muted}>{statusDescription}</Text>
+              )}
             </View>
             <Pressable
               onPress={onToggle}
@@ -107,9 +128,7 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet({
                   Posición simulada cada 3 segundos
                 </Text>
               </View>
-              <Text style={styles.trackText}>
-                {`Disponible: ${seconds}s`}
-              </Text>
+              <Text style={styles.trackText}>{`Disponible: ${seconds}s`}</Text>
             </View>
           )}
 
@@ -128,6 +147,11 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet({
             onStartTrip={onStartTrip}
             onFinishTrip={onFinishTrip}
             onPayCash={onPayCash}
+            onOpenMercadoPago={onOpenMercadoPago}
+            onCheckMercadoPago={onCheckMercadoPago}
+            paymentLoading={paymentLoading}
+            paymentError={paymentError}
+            paymentResult={paymentResult}
             onResetTrip={onResetTrip}
           />
         </BottomSheetScrollView>

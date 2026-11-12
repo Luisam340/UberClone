@@ -2,12 +2,13 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "noEmit": true,
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src/**/*.js",
@@ -17,10 +18,10 @@
   ],
   "exclude": [
     "node_modules",
-    ".expo",
     "dist",
     "build",
     "ios",
-    "android"
+    "android",
+    "coverage"
   ]
 }

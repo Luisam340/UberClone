@@ -259,6 +259,99 @@ export const styles = StyleSheet.create({
     gap: 10,
   },
 
+  tripActiveSheetContent: {
+    paddingTop: 10,
+    paddingBottom: 18,
+  },
+
+  tripHomeHeading: {
+    fontSize: 18,
+    lineHeight: 23,
+    marginBottom: 4,
+  },
+
+  tripActiveHeading: {
+    fontSize: 16,
+    lineHeight: 21,
+    textAlign: 'left',
+    marginBottom: 0,
+  },
+
+  tripActiveCompactContainer: {
+    marginTop: 8,
+    gap: 8,
+  },
+
+  tripActiveCompactPassengerCard: {
+    padding: 10,
+    gap: 10,
+    borderRadius: 14,
+  },
+
+  tripActiveCompactAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+  },
+
+  tripActiveCompactRoute: {
+    paddingVertical: 0,
+    gap: 9,
+  },
+
+  tripActiveCompactRouteLine: {
+    height: 30,
+    marginVertical: 2,
+  },
+
+  tripActiveCompactRouteDetails: {
+    gap: 12,
+  },
+
+  tripActiveCompactMetrics: {
+    gap: 8,
+  },
+
+  tripActiveCompactMetricCard: {
+    paddingVertical: 6,
+    gap: 2,
+  },
+
+  tripActiveCompactName: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+
+  tripActiveCompactSecondary: {
+    fontSize: 10,
+  },
+
+  tripActiveCompactFare: {
+    fontSize: 14,
+  },
+
+  tripActiveCompactLabel: {
+    fontSize: 9,
+    letterSpacing: 0.3,
+  },
+
+  tripActiveCompactAddress: {
+    fontSize: 11,
+    lineHeight: 15,
+  },
+
+  tripActiveCompactMetricValue: {
+    fontSize: 13,
+  },
+
+  tripPaymentSummary: {
+    gap: 11,
+    padding: 16,
+    marginTop: 12,
+    backgroundColor: colors.lavender,
+    borderRadius: 16,
+  },
+
   tripRequestActiveTitle: {
     color: colors.primary,
     fontSize: 16,

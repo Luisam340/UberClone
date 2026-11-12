@@ -1,9 +1,10 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+
 import {
   initializeFirestore,
   getFirestore,
-  setLogLevel,
 } from 'firebase/firestore';
+
 import {
   initializeAuth,
   getAuth,
@@ -23,6 +24,7 @@ const firebaseConfig = {
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
+// Firestore
 let db;
 
 try {
@@ -42,9 +44,8 @@ try {
     throw error;
   }
 }
-setLogLevel('error');
-export { db };
 
+// Authentication
 let auth;
 
 try {
@@ -64,4 +65,4 @@ try {
   }
 }
 
-export { auth };
+export { auth, db };

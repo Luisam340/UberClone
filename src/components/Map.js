@@ -37,23 +37,23 @@ export function Map({
   onNavigationError,
 }) {
   const mapRef = useRef(null);
-  const positionRef = useRef(null);
   const headingRef = useRef(0);
   const speedRef = useRef(VEHICLE_SPEED);
   const callbackRef = useRef(onLocationChange);
   const completionRef = useRef(onNavigationComplete);
   const errorRef = useRef(onNavigationError);
   const initializedRef = useRef(false);
-
   const [initialLocation] = useState(() => origin || getRandomLocation());
+  const positionRef = useRef({
+    latitude: initialLocation.latitude,
+    longitude: initialLocation.longitude,
+  });
 
   const [tracking, setTracking] = useState(() => {
     const position = {
       latitude: initialLocation.latitude,
       longitude: initialLocation.longitude,
     };
-
-    positionRef.current = position;
 
     return {
       position,

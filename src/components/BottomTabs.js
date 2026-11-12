@@ -33,4 +33,3 @@ export function BottomTabs({ active, onNavigate }) {
     </View>
   );
 }
-˝

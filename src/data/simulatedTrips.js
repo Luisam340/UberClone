@@ -1,3 +1,5 @@
 export const REQUEST_DURATION_SECONDS = 15;
 export const MIN_REQUEST_DELAY_MS = 5000;
 export const MAX_REQUEST_DELAY_MS = 10000;
+export const MAX_PENDING_REQUESTS = 4;
+export const PAYMENTS_API_URL = process.env.EXPO_PUBLIC_PAYMENTS_API_URL;

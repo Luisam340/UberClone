@@ -9,8 +9,9 @@ export const styles = StyleSheet.create({
     top: 16,
     left: 12,
     right: 12,
-    bottom: '19%',
-    zIndex: 10,
+    bottom: 0,
+    zIndex: 20,
+    elevation: 20,
   },
 
   tripAlertsHeader: {
@@ -33,6 +34,7 @@ export const styles = StyleSheet.create({
   tripAlertsScroll: {
     flexGrow: 0,
     flexShrink: 1,
+    maxHeight: '100%',
   },
 
   tripAlertsList: {
@@ -181,4 +183,5 @@ export const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+
 });

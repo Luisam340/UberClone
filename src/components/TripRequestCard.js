@@ -34,6 +34,7 @@ export function TripRequestCard({
     distanceKm = 0,
     durationMin = 0,
     estimatedFare = 0,
+    paymentMethod = 'cash',
   } = trip;
 
   const isExpired = remainingSeconds <= 0;
@@ -83,6 +84,11 @@ export function TripRequestCard({
           {formatCurrency(estimatedFare)}
         </Text>
       </View>
+
+      <Text style={styles.muted}>
+        Método de pago:{' '}
+        {paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'Efectivo'}
+      </Text>
 
       <View style={styles.tripRequestRouteContainer}>
         <View style={styles.tripRequestRouteIcons}>

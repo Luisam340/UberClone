@@ -174,8 +174,8 @@ export async function createSimulatedTrip({
         driverEarnings: fareDetails.driverEarnings,
 
         commissionRate: PRICING.commissionRate,
-        // El simulador actual solo permite confirmar cobros en efectivo.
-        paymentMethod: 'cash',
+        // Simular el método de pago elegido por el pasajero.
+        paymentMethod: Math.random() < 0.5 ? 'cash' : 'mercadopago',
         paymentStatus: 'pending',
         createdAt: new Date().toISOString(),
       };

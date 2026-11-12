@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateSimulatedPassenger } from '../data/simulatedPassengers';
-
 import {
   MAX_REQUEST_DELAY_MS,
   MIN_REQUEST_DELAY_MS,
   REQUEST_DURATION_SECONDS,
 } from '../data/simulatedTrips';
-
 import {
   validateTripGenerator,
   validateSimulatedTrip,

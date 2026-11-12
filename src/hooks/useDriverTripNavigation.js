@@ -25,6 +25,13 @@ export function useDriverTripNavigation({
     sheetRef.current?.snapToIndex(0);
   }, [activeTrip?.id]);
 
+  // Al terminar el viaje, mostrar todo el resumen y las acciones de cobro.
+  useEffect(() => {
+    if (status === TRIP_STATUS.COMPLETED && activeTrip) {
+      sheetRef.current?.snapToIndex(2);
+    }
+  }, [status, activeTrip?.id, sheetRef]);
+
   // Elegir la siguiente parada del conductor.
   const navigationTarget =
     status === TRIP_STATUS.PICKUP && !pickupArrived
@@ -51,7 +58,7 @@ export function useDriverTripNavigation({
         setPickupArrived(true);
       } else if (status === TRIP_STATUS.IN_PROGRESS) {
         setDestinationArrived(true);
-        sheetRef.current?.snapToIndex(2);
+        sheetRef.current?.snapToIndex(1);
       }
     },
     [navigationId, status, sheetRef],
