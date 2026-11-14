@@ -1,0 +1,27 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "App.js",
+    "index.js"
+, "backend/mercadoPagoApi.js"  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "ios",
+    "android",
+    "coverage"
+  ]
+}

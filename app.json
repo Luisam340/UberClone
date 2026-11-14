@@ -2,23 +2,61 @@
   "expo": {
     "name": "UberClone",
     "slug": "UberClone",
+    "scheme": "uberclone",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/uber-clone.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.luisamosquera.UberClone"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#EEE7FA",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.luisamosquera.UberClone"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/uber-clone.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/uber-clone-splash-icon2.png",
+          "imageWidth": 340,
+          "resizeMode": "contain",
+          "backgroundColor": "#FAF9FC"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "expo-font",
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "UberClone necesita acceder a tus fotos para completar el registro del conductor.",
+          "cameraPermission": "UberClone necesita acceder a la cámara para tomar fotografías del conductor, vehículo y documentos.",
+          "microphonePermission": "UberClone necesita acceder al micrófono cuando se utilicen funciones de captura audiovisual."
+        }
+      ],
+      "expo-maps",
+      "expo-image",
+      "expo-web-browser"
+    ]
   }
 }
