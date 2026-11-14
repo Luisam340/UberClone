@@ -15,6 +15,8 @@ import { styles } from '../styles/app.styles';
 export function ImageInput({ label, value, onChange, disabled = false }) {
   const [loading, setLoading] = useState(false);
 
+  // AI-assisted: see docs/AI_LOG.md #9.
+  // AI-assisted: see docs/AI_LOG.md #10.
   const checkCameraPermission = async () => {
     let permission = await ImagePicker.getCameraPermissionsAsync();
 

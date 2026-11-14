@@ -345,7 +345,7 @@ export const styles = StyleSheet.create({
   },
 
   tripPaymentSummary: {
-    gap: 11,
+    gap: 4,
     padding: 16,
     marginTop: 12,
     backgroundColor: colors.lavender,
@@ -369,5 +369,4 @@ export const styles = StyleSheet.create({
     flexGrow: 0,
     paddingBottom: 12,
   },
-
 });

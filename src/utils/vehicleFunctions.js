@@ -7,7 +7,7 @@ import {
   CURVE_DETECTION_DISTANCE,
 } from '../data/vehicle';
 
-
+// AI-assisted: see docs/AI_LOG.md #16.
 export function getVehicleSize(latitudeDelta) {
   if (latitudeDelta <= 0.0015) return 76;
   if (latitudeDelta <= 0.004) return 64;

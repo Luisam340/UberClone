@@ -2,6 +2,7 @@ import MapView, { Marker, Polyline } from 'react-native-maps';
 import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { LocateFixed } from 'lucide-react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { styles } from '../styles/app.styles';
 import { colors } from '../themes/colors';
 import { getRandomLocation } from '../data/simulatedLocations';
@@ -27,6 +28,7 @@ import {
 
 export function Map({
   origin,
+  sheetPosition,
   route = false,
   moving = false,
   children,
@@ -37,6 +39,11 @@ export function Map({
   onNavigationError,
 }) {
   const mapRef = useRef(null);
+  const centerButtonPosition = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: Math.max(12, (sheetPosition?.value ?? 160) - 60) },
+    ],
+  }));
   const headingRef = useRef(0);
   const speedRef = useRef(VEHICLE_SPEED);
   const callbackRef = useRef(onLocationChange);
@@ -74,8 +81,7 @@ export function Map({
   const targetLatitude = navigationTarget?.latitude;
   const targetLongitude = navigationTarget?.longitude;
 
-  // Reutilizar la animacion tanto para recorridos aleatorios
-  // como para llevar al conductor hacia el pasajero.
+  // Reutilizar la animacion tanto para recorridos aleatorios como para llevar al conductor hacia el pasajero.
   useEffect(() => {
     const hasNavigationTarget =
       Number.isFinite(targetLatitude) && Number.isFinite(targetLongitude);
@@ -356,14 +362,16 @@ export function Map({
 
       {children}
 
-      <Pressable
-        onPress={centerOnDriver}
-        accessibilityRole="button"
-        accessibilityLabel="Centrar mapa en el conductor"
-        style={styles.mapCenterButton}
-      >
-        <LocateFixed size={24} color={colors.primary} />
-      </Pressable>
+      <Animated.View style={[styles.mapCenterButton, centerButtonPosition]}>
+        <Pressable
+          onPress={centerOnDriver}
+          accessibilityRole="button"
+          accessibilityLabel="Centrar mapa en el conductor"
+          style={styles.mapCenterButtonInner}
+        >
+          <LocateFixed size={24} color={colors.primary} />
+        </Pressable>
+      </Animated.View>
     </View>
   );
 }

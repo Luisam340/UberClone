@@ -15,7 +15,7 @@
     "src/**/*.jsx",
     "App.js",
     "index.js"
-  ],
+, "backend/mercadoPagoApi.js"  ],
   "exclude": [
     "node_modules",
     "dist",

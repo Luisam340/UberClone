@@ -16,6 +16,7 @@ import { uploadImage } from '../services/cloudinary';
 
 export const DriverRegistrationContext = createContext(Object.create(null));
 
+// AI-assisted: see docs/AI_LOG.md #12.
 export function DriverRegistrationProvider({ children }) {
   const [personalData, setPersonalData] = useState(initialPersonalData);
   const [vehicleData, setVehicleData] = useState(initialVehicle);

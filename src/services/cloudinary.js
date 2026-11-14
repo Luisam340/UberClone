@@ -6,6 +6,7 @@ const uploadPreset = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 const baseUrl = process.env.EXPO_PUBLIC_BASE_URL;
 const uploadImageUrl = process.env.EXPO_PUBLIC_UPLOAD_IMAGE;
 
+// AI-assisted: see docs/AI_LOG.md #14.
 export const uploadImage = async (imageUri) => {
   if (!cloudName || !uploadPreset) {
     throw new Error('Cloudinary configuration is missing.');

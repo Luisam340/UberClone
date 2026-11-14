@@ -14,6 +14,7 @@ import { RegisterWelcomeScreen } from '../register/RegisterWelcomeScreen';
 
 const Tabs = createMaterialTopTabNavigator();
 
+// AI-assisted: see docs/AI_LOG.md #6.
 export function AuthTabs({ navigation }) {
   // @ts-ignore
   const logo = require('../../../assets/uber-clone.png');

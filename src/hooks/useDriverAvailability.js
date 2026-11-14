@@ -10,7 +10,7 @@ import { vehicleCategories } from '../data/vehicle';
 
 // Temporal: evita escrituras frecuentes de ubicacion en Firestore.
 // El mapa y la posicion simulada del conductor siguen funcionando localmente.
-const PERSIST_DRIVER_LOCATION = false;
+const PERSIST_DRIVER_LOCATION = true;
 
 export function useDriverAvailability(userId, origin) {
   const [available, setAvailable] = useState(false);

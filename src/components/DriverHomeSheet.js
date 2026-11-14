@@ -1,5 +1,5 @@
-import { forwardRef, useMemo } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, Text, View, useWindowDimensions } from 'react-native';
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { MapPin, ToggleLeft, ToggleRight } from 'lucide-react-native';
 import { styles } from '../styles/app.styles';
@@ -13,6 +13,7 @@ import { ActiveTripDetails } from './ActiveTripDetails';
 export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
   {
     available,
+    sheetPosition,
     seconds,
     accountValidated,
     vehicleCategory,
@@ -40,8 +41,13 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
   },
   ref,
 ) {
-  // Compacto, detalles del recorrido y resumen final con acciones de cobro.
-  const snapPoints = useMemo(() => ['21%', '51%', '93%'], []);
+  const { height: windowHeight } = useWindowDimensions();
+  const [headerHeight, setHeaderHeight] = useState(90);
+  const compactInset = activeTrip ? 42 : 50;
+  const snapPoints = useMemo(
+    () => [headerHeight + compactInset],
+    [headerHeight, compactInset],
+  );
   const statusTitle = getDriverStatusTitle({
     loadingApproval,
     accountValidated,
@@ -60,13 +66,30 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
     available,
   });
 
+  // Abrir el panel al cambiar de etapa.
+  const previousStage = useRef(null);
+  const currentStage = `${activeTrip?.id ?? 'idle'}:${statusTitle}`;
+
+  useEffect(() => {
+    if (previousStage.current === null) {
+      previousStage.current = currentStage;
+      return;
+    }
+    if (previousStage.current === currentStage) return;
+    previousStage.current = currentStage;
+    const frame = requestAnimationFrame(() => ref?.current?.expand());
+    return () => cancelAnimationFrame(frame);
+  }, [currentStage, ref]);
+
   return (
     <View pointerEvents="box-none" style={styles.tripRequestHomeOverlay}>
       <BottomSheet
         ref={ref}
-        index={0}
+        index={1}
         snapPoints={snapPoints}
-        enableDynamicSizing={false}
+        enableDynamicSizing
+        animatedPosition={sheetPosition}
+        maxDynamicContentSize={windowHeight * 0.85}
         enablePanDownToClose={false}
         enableHandlePanningGesture
         enableContentPanningGesture
@@ -74,14 +97,21 @@ export const DriverHomeSheet = forwardRef(function DriverHomeSheet(
         handleIndicatorStyle={styles.tripRequestHomeSheetHandle}
       >
         <BottomSheetScrollView
-          style={styles.tripRequestHomeScroll}
           contentContainerStyle={[
             styles.sheetContent,
             activeTrip && styles.tripActiveSheetContent,
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.row}>
+          <View
+            style={styles.row}
+            onLayout={({ nativeEvent }) => {
+              const height = Math.ceil(nativeEvent.layout.height);
+              setHeaderHeight((previous) =>
+                previous === height ? previous : height,
+              );
+            }}
+          >
             <View style={styles.tripRequestHomeStatusContent}>
               <Text
                 style={[

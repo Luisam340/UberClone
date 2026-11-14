@@ -5,6 +5,7 @@ import { auth } from '../config/firebaseConfig';
 // El Access Token solo se lee en mercadoPagoApi.js (Node), nunca en Expo.
 const PAYMENTS_API_URL = process.env.EXPO_PUBLIC_PAYMENTS_API_URL;
 
+// AI-assisted: see docs/AI_LOG.md #18.
 function getPaymentsApiUrl() {
   if (!PAYMENTS_API_URL || !/^https:\/\//i.test(PAYMENTS_API_URL)) {
     throw new Error(

@@ -21,9 +21,12 @@ const getRandomDelay = () =>
 const getRemainingSeconds = (expiresAt, now) =>
   Math.max(0, Math.ceil((expiresAt - now) / 1000));
 
+// AI-assisted: see docs/AI_LOG.md #17.
 export function useTripRequests({
   isAvailable = false,
   createTrip,
+  onCreateRequest,
+  onDiscardRequest,
   autoGenerate = false,
   requestDuration = REQUEST_DURATION_SECONDS,
 } = {}) {
@@ -33,9 +36,23 @@ export function useTripRequests({
   const [error, setError] = useState(null);
 
   const requestsRef = useRef([]);
+  const acceptingRequestsRef = useRef(new Set());
   const generatingRef = useRef(false);
   const generationRef = useRef(0);
   const availableRef = useRef(isAvailable);
+  const discardRef = useRef(onDiscardRequest);
+  discardRef.current = onDiscardRequest;
+
+  const discardRequests = useCallback((items, reason) => {
+    if (!items.length) return;
+    items.forEach((item) => {
+      Promise.resolve(discardRef.current?.(item, reason)).catch((err) => {
+        setError(
+          err?.message ?? 'No se pudo registrar el rechazo de una solicitud.',
+        );
+      });
+    });
+  }, []);
 
   availableRef.current = isAvailable;
 
@@ -52,14 +69,23 @@ export function useTripRequests({
     setIsGenerating(false);
   }, []);
 
-  // Limpiar todas las ofertas cuando ya no se pueden recibir.
+  // Al desconectarse, rechazar las ofertas libres sin interferir con una
+  // aceptación o un rechazo que todavía se está confirmando en Firestore.
   const clearRequests = useCallback(() => {
     invalidateGeneration();
 
-    if (requestsRef.current.length > 0) {
-      updateRequests([]);
+    const locked = requestsRef.current.filter((request) =>
+      acceptingRequestsRef.current.has(request.id),
+    );
+    const discarded = requestsRef.current.filter(
+      (request) => !acceptingRequestsRef.current.has(request.id),
+    );
+
+    if (discarded.length > 0) {
+      updateRequests(locked);
+      discardRequests(discarded, 'availability_ended');
     }
-  }, [invalidateGeneration, updateRequests]);
+  }, [invalidateGeneration, updateRequests, discardRequests]);
 
   // Agregar una solicitud sin reemplazar las anteriores.
   const startRequest = useCallback(async () => {
@@ -122,8 +148,16 @@ export function useTripRequests({
         throw new Error('La solicitud generada tiene un ID duplicado.');
       }
 
+      // No mostrar una oferta hasta que exista realmente en Firestore.
+      await onCreateRequest?.(trip);
+      if (generationId !== generationRef.current || !availableRef.current) {
+        discardRequests([trip], 'availability_ended');
+        return false;
+      }
+      // El contador inicia cuando la solicitud ya es visible, no mientras guarda.
+      trip.expiresAt = Date.now() + duration * 1000;
       updateRequests([...requestsRef.current, trip]);
-      setNow(createdAt);
+      setNow(Date.now());
       return true;
     } catch (requestError) {
       if (generationId !== generationRef.current) {
@@ -137,11 +171,49 @@ export function useTripRequests({
         setIsGenerating(false);
       }
     }
-  }, [createTrip, requestDuration, updateRequests]);
+  }, [
+    createTrip,
+    requestDuration,
+    updateRequests,
+    onCreateRequest,
+    discardRequests,
+  ]);
+
+  // Mantener la solicitud en memoria durante la aceptación remota.
+  const lockRequest = useCallback((requestId) => {
+    if (
+      acceptingRequestsRef.current.has(requestId) ||
+      !requestsRef.current.some((item) => item.id === requestId)
+    ) {
+      return false;
+    }
+    acceptingRequestsRef.current.add(requestId);
+    return true;
+  }, []);
+  const unlockRequest = useCallback(
+    (requestId) => {
+      acceptingRequestsRef.current.delete(requestId);
+
+      // Si se desconectó durante la operación y no se aceptó la oferta,
+      // registrar su rechazo en vez de dejarla pendiente en Firestore.
+      if (!availableRef.current) {
+        const request = requestsRef.current.find(
+          (item) => item.id === requestId,
+        );
+        if (request) {
+          updateRequests(
+            requestsRef.current.filter((item) => item.id !== requestId),
+          );
+          discardRequests([request], 'availability_ended');
+        }
+      }
+    },
+    [updateRequests, discardRequests],
+  );
 
   // Eliminar una oferta especifica.
   const removeRequest = useCallback(
-    (requestId) => {
+    (requestId, reason = 'driver_rejected', persistRejection = true) => {
       const request = requestsRef.current.find((item) => item.id === requestId);
 
       if (!request) {
@@ -151,10 +223,11 @@ export function useTripRequests({
       updateRequests(
         requestsRef.current.filter((item) => item.id !== requestId),
       );
-
+      // En un rechazo manual la transacción ya se confirmó en Firestore.
+      if (persistRejection) discardRequests([request], reason);
       return true;
     },
-    [updateRequests],
+    [updateRequests, discardRequests],
   );
 
   // Tomar una oferta valida y cancelar las demas.
@@ -166,19 +239,27 @@ export function useTripRequests({
         return null;
       }
 
-      if (Date.now() >= request.expiresAt) {
-        removeRequest(requestId);
+      if (
+        Date.now() >= request.expiresAt &&
+        !acceptingRequestsRef.current.has(requestId)
+      ) {
+        removeRequest(requestId, 'expired');
         return null;
       }
 
       invalidateGeneration();
+      acceptingRequestsRef.current.delete(requestId);
+      const otherRequests = requestsRef.current.filter(
+        (item) => item.id !== requestId,
+      );
       updateRequests([]);
+      discardRequests(otherRequests, 'another_request_accepted');
 
       const { expiresAt, ...acceptedTrip } = request;
 
       return acceptedTrip;
     },
-    [invalidateGeneration, removeRequest, updateRequests],
+    [invalidateGeneration, removeRequest, updateRequests, discardRequests],
   );
 
   const pendingRequests = useMemo(
@@ -202,16 +283,24 @@ export function useTripRequests({
       setNow(currentTime);
 
       const validRequests = requestsRef.current.filter(
-        (request) => request.expiresAt > currentTime,
+        (request) =>
+          request.expiresAt > currentTime ||
+          acceptingRequestsRef.current.has(request.id),
       );
 
       if (validRequests.length !== requestsRef.current.length) {
+        const expired = requestsRef.current.filter(
+          (item) =>
+            item.expiresAt <= currentTime &&
+            !acceptingRequestsRef.current.has(item.id),
+        );
         updateRequests(validRequests);
+        discardRequests(expired, 'expired');
       }
     }, 250);
 
     return () => clearInterval(intervalId);
-  }, [requests.length, updateRequests]);
+  }, [requests.length, updateRequests, discardRequests]);
 
   // Cancelar todas las ofertas si el conductor se desconecta.
   useEffect(() => {
@@ -251,6 +340,8 @@ export function useTripRequests({
     setError,
     startRequest,
     removeRequest,
+    lockRequest,
+    unlockRequest,
     takeRequest,
     clearRequests,
     maxPendingRequests: MAX_PENDING_REQUESTS,

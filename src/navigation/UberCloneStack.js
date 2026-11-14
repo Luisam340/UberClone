@@ -6,10 +6,11 @@ import { AuthContext } from '../context/AuthContext';
 import { AuthTabs } from '../screens/auth/AuthTabs';
 import { DriverRegistrationScreen } from '../screens/register/DriverRegistrationScreen';
 import { colors } from '../themes/colors';
-import DriverTabs from './DriverTabs';
+import DriverDrawer from './DriverDrawer';
 
 const Stack = createNativeStackNavigator();
 
+// AI-assisted: see docs/AI_LOG.md #5.
 export default function UberCloneStack() {
   const { user, loading } = useContext(AuthContext);
 
@@ -35,7 +36,7 @@ export default function UberCloneStack() {
       }}
     >
       {user ? (
-        <Stack.Screen name="Driver" component={DriverTabs} />
+        <Stack.Screen name="Driver" component={DriverDrawer} />
       ) : (
         <>
           <Stack.Screen name="Autenticacion" component={AuthTabs} />

@@ -201,7 +201,7 @@ export const styles = StyleSheet.create({
   mapCenterButton: {
     position: 'absolute',
     right: 16,
-    bottom: 160,
+    top: 0,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -210,6 +210,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: 4,
     zIndex: 10,
+  },
+
+  mapCenterButtonInner: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   tripNavigationMessage: {

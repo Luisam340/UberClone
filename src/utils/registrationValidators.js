@@ -1,3 +1,4 @@
+// AI-assisted: see docs/AI_LOG.md #11.
 const PRIVATE_VEHICLE_REVIEW_YEARS = 5;
 const PUBLIC_VEHICLE_REVIEW_YEARS = 2;
 const MINIMUM_VEHICLE_YEAR = 1886;
@@ -71,6 +72,7 @@ const isAdult = (birthDate) => {
 const isValidEmail = (value) =>
   typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
+// AI-assisted: see docs/AI_LOG.md #7.
 export function validateVehicleYear(vehicleYear, currentDate = new Date()) {
   const yearText = String(vehicleYear ?? '').trim();
   const currentYear = currentDate.getFullYear();

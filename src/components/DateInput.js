@@ -14,6 +14,7 @@ import { styles } from '../styles/app.styles';
 
 LogBox.ignoreLogs(['DateTimePicker: `onChange` is deprecated.']);
 
+// AI-assisted: see docs/AI_LOG.md #8.
 export function DateInput({ label, value, onChange }) {
   const [visible, setVisible] = useState(false);
 

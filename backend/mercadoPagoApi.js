@@ -1,4 +1,4 @@
-// Servicio local Node.js: no importar este archivo en React Native.
+// Servicio local Node.js para conectar mercadopago con firebase
 const { createServer } = require('node:http');
 const { loadEnvFile } = require('node:process');
 const { createHash } = require('node:crypto');
@@ -34,6 +34,7 @@ function getTripId(value) {
     /^[a-zA-Z0-9_-]+$/.test(value) ? value : null;
 }
 
+// AI-assisted: see docs/AI_LOG.md #18.
 async function requestMercadoPago(path, options = {}) {
   const response = await fetch(mpEndpoint + path, {
     ...options,

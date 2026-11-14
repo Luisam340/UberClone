@@ -45,6 +45,7 @@ try {
   }
 }
 
+// AI-assisted: see docs/AI_LOG.md #13.
 // Authentication
 let auth;
 
