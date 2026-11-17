@@ -3,6 +3,8 @@ import {
   FIRESTORE_TRIP_STATUS,
   updateTripStatus,
   confirmCashTripPayment,
+  createRequestedTrip,
+  rejectRequestedTrip,
 } from '../services/trips';
 import { TRIP_STATUS, useTripLifecycle } from './useTripLifecycle';
 import { useTripRequests } from './useTripRequests';
@@ -29,6 +31,19 @@ export function useTripSimulation({
     completeTrip: completeActiveTrip,
     resetTrip: resetActiveTrip,
   } = useTripLifecycle();
+
+  // Guardar cada solicitud en Firestore antes de mostrarla.
+  const handleCreateRequest = useCallback(
+    (trip) => createRequestedTrip(driverId, trip),
+    [driverId],
+  );
+
+  // Registrar en Firestore las solicitudes que no se tomaron.
+  const handleDiscardRequest = useCallback(
+    (trip, reason) => rejectRequestedTrip(driverId, trip.id, reason),
+    [driverId],
+  );
+
   const {
     pendingRequests,
     isGenerating,
@@ -36,11 +51,15 @@ export function useTripSimulation({
     setError,
     startRequest,
     removeRequest,
+    lockRequest,
+    unlockRequest,
     takeRequest,
     maxPendingRequests,
   } = useTripRequests({
     isAvailable: isAvailable && !activeTrip,
     createTrip,
+    onCreateRequest: handleCreateRequest,
+    onDiscardRequest: handleDiscardRequest,
     autoGenerate,
     requestDuration,
   });
@@ -48,6 +67,8 @@ export function useTripSimulation({
     driverId,
     pendingRequests,
     removeRequest,
+    lockRequest,
+    unlockRequest,
     takeRequest,
     beginPickup,
     setLastRequestResult,

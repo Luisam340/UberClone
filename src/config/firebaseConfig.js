@@ -45,13 +45,27 @@ try {
   }
 }
 
-// AI-assisted: see docs/AI_LOG.md #13.
 // Authentication
+const authStorage = {
+  getItem: (key) =>
+    AsyncStorage.getItem(key).catch((error) => {
+      throw new Error(`AsyncStorage.getItem failed: ${String(error)}`);
+    }),
+  setItem: (key, value) =>
+    AsyncStorage.setItem(key, value).catch((error) => {
+      throw new Error(`AsyncStorage.setItem failed: ${String(error)}`);
+    }),
+  removeItem: (key) =>
+    AsyncStorage.removeItem(key).catch((error) => {
+      throw new Error(`AsyncStorage.removeItem failed: ${String(error)}`);
+    }),
+};
+
 let auth;
 
 try {
   auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
+    persistence: getReactNativePersistence(authStorage),
   });
 } catch (error) {
   if (
