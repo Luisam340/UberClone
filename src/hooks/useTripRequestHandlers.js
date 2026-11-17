@@ -32,9 +32,12 @@ export function useTripRequestHandlers({
         setLastRequestResult('expired');
         return false;
       }
-      if (!lockRequest(selectedId)) return false;
-
+      // El bloqueo va dentro del try para que cualquier fallo se muestre
+      // en pantalla y no quede como una promesa rechazada sin manejar.
+      let locked = false;
       try {
+        locked = lockRequest(selectedId);
+        if (!locked) return false;
         await rejectRequestedTrip(driverId, selectedId, 'driver_rejected');
         // Ya está persistido; no lanzar un segundo rechazo en segundo plano.
         const removed = removeRequest(selectedId, 'driver_rejected', false);
@@ -44,10 +47,10 @@ export function useTripRequestHandlers({
         }
         return removed;
       } catch (error) {
-        setError(error.message ?? 'No fue posible rechazar la solicitud.');
+        setError(error?.message ?? 'No fue posible rechazar la solicitud.');
         return false;
       } finally {
-        unlockRequest(selectedId);
+        if (locked) unlockRequest(selectedId);
       }
     },
     [
@@ -73,9 +76,11 @@ export function useTripRequestHandlers({
         return false;
       }
 
-      if (!lockRequest(selectedId)) return false;
+      let locked = false;
       acceptingRef.current = true;
       try {
+        locked = lockRequest(selectedId);
+        if (!locked) return false;
         await acceptRequestedTrip(driverId, request.id);
         await updateTripStatus(
           driverId,
@@ -92,10 +97,10 @@ export function useTripRequestHandlers({
         setError(null);
         return true;
       } catch (error) {
-        setError(error.message ?? 'No fue posible aceptar la solicitud.');
+        setError(error?.message ?? 'No fue posible aceptar la solicitud.');
         return false;
       } finally {
-        unlockRequest(selectedId);
+        if (locked) unlockRequest(selectedId);
         acceptingRef.current = false;
       }
     },

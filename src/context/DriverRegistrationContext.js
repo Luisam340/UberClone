@@ -185,11 +185,6 @@ export function DriverRegistrationProvider({ children }) {
         setDocumentsCompleted(true);
       } catch (error) {
         setDocumentsCompleted(false);
-
-        console.error(
-          '[REGISTRATION] Registration failed:',
-          error?.message || error,
-        );
       } finally {
         submittingRef.current = false;
         setIsSubmitting(false);

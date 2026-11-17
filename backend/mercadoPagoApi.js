@@ -55,12 +55,7 @@ async function requestMercadoPago(path, options = {}) {
       message: item?.message ?? null,
       details: item?.details ?? null,
     })) : null;
-    console.error('Mercado Pago API error:', JSON.stringify({
-      httpStatus: response.status,
-      code: typeof data?.error === 'string' ? data.error : null,
-      message: typeof data?.message === 'string' ? data.message : null,
-      errors,
-    }));
+
     const error = new Error('Mercado Pago no pudo procesar la solicitud (' + response.status + ').');
     error.httpStatus = response.status;
     throw error;
